@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections; 
+using System.Collections;
+using System;
 
 
 public class PlayerControllerAlt : MonoBehaviour
@@ -34,7 +35,15 @@ public class PlayerControllerAlt : MonoBehaviour
     private float xRotation = 0f;
     private bool isDashing = false;
     private float dashCooldownTimer = 0f;
+    //[SerializeField] GameObject point_ref;
+    //private bool grabbed = false;
+  
+    //public static event Action <Collision> OnGrabObject;
+    public static Action  OnGrab;
+    public static Action OnThrow;
 
+
+    bool grabbed = false;
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -67,6 +76,58 @@ public class PlayerControllerAlt : MonoBehaviour
             StartCoroutine(PerformDash());
         }
     }
+    public void OnGrabAction(InputAction.CallbackContext context)
+    {
+        
+        if (context.performed )
+        {
+            grabbed = !grabbed;
+            if (grabbed == true)
+            {
+                OnGrab?.Invoke();
+            }
+            else
+            {
+                OnThrow?.Invoke();
+            }
+            Debug.Log("funcionaxd");
+           // OnGrab?.Invoke();
+
+            // 
+
+            //objectGrabbed.transform.SetParent(point_ref.transform.parent);
+
+        }
+        // _switchState = !_switchState;
+
+
+        /* if (context.started)
+          {
+              Debug.Log("Grab Action STARTED");
+          }
+          if (context.performed)
+          {
+              Debug.Log("Grab Action PERFORMED - ¡funcionaxd!");
+              OnGrab?.Invoke();
+              //objectGrabbed.transform.SetParent(point_ref.transform.parent);
+          }
+          if (context.canceled)
+          {
+              Debug.Log("Grab Action CANCELED");
+          }*/
+
+    }
+    /*private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.tag == "object")
+        {
+            grabbed = true;
+            objectGrabbed = collision.gameObject;
+            Debug.Log("grabbed");
+            //collision.transform.position = point_ref.transform.position;
+            
+        }
+    }*/
     void Update()
     {
         // Actualizamos el temporizador del cooldown del dash cada frame
