@@ -1,0 +1,75 @@
+using System;
+using UnityEngine;
+
+public class Boxes : MonoBehaviour
+{
+    public static event Action <int> OnACollisionWeight;
+    public static event Action<int> OnBCollisionWeight;
+    public enum TipoCaja
+    {
+        TipoA,
+        TipoB
+    }
+
+    public TipoCaja tipo;
+    public int weight;
+    void Start()
+    {
+        switch (tipo)
+        {
+            case TipoCaja.TipoA:
+                Debug.Log("Esta es una caja tipo A");
+                
+                break;
+
+            case TipoCaja.TipoB:
+                Debug.Log("Esta es una caja tipo b");
+               
+                break;
+      
+        }
+    }
+    private void OnTriggerEnter(Collider other)
+    {
+        if (tipo == TipoCaja.TipoA)
+        {
+            
+        }
+        if (tipo == TipoCaja.TipoB)
+        {
+
+        }
+        if (other.tag == "start")
+        {
+            Debug.Log("estrellita donde estas");
+            OnACollisionWeight?.Invoke(3);
+            weight = 3;
+        }
+        else if(other.tag == "ship")
+        {
+            Debug.Log("navecita");
+            OnACollisionWeight?.Invoke(1);
+            weight = 1;
+        }
+        else if(other.tag == "moon")
+        {
+            Debug.Log("luna");
+            OnACollisionWeight?.Invoke(10);
+            weight = 10;
+        }
+        else if(other.tag == "alien")
+        {
+            Debug.Log("alien"); OnACollisionWeight?.Invoke(4);
+            weight = 4;
+        }
+        else if (other.tag == "saturn")
+        {
+            Debug.Log("en saturno"); OnACollisionWeight?.Invoke(8);
+            weight = 8;
+        }
+        else
+        {
+            Debug.Log("no hijito");
+        }
+    }
+}

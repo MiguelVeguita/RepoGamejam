@@ -1,9 +1,13 @@
 using UnityEngine;
-
+using TMPro;
 public class UIManager : MonoBehaviour
 {
     public GameObject gameOverScreen; // Asigna esto en el Inspector
 
+    [SerializeField] TextMeshProUGUI AweightText;
+    [SerializeField] TextMeshProUGUI BweightText;
+    int Aweight;
+    int Bweight;
     public void ShowGameOverScreen()
     {
         if (gameOverScreen != null)
@@ -11,5 +15,29 @@ public class UIManager : MonoBehaviour
             gameOverScreen.SetActive(true);
             Debug.Log("Game Over screen displayed!");
         }
+    }
+
+    private void OnEnable()
+    {
+        Boxes.OnACollisionWeight += WeightAType;
+        Boxes.OnBCollisionWeight += WeightBType;
+    }
+    private void OnDisable()
+    {
+        Boxes.OnACollisionWeight -= WeightAType;
+        Boxes.OnBCollisionWeight -= WeightBType;
+    }
+    private void Update()
+    {
+        AweightText.text = ("weight " + Aweight);
+        BweightText.text = ("weight " + Bweight);
+    }
+    public void WeightAType(int weight)
+    {
+        Aweight += weight;
+    }
+    public void WeightBType(int weight)
+    {
+        Bweight += weight;
     }
 }
