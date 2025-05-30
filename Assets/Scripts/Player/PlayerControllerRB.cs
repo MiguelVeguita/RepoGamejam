@@ -42,8 +42,16 @@ public class PlayerControllerAlt : MonoBehaviour
     public static Action  OnGrab;
     public static Action OnThrow;
 
+    public delegate void GrabFunc();
+    private GrabFunc grabFunc;
+
     public bool isPressed = false;
     bool grabbed = false;
+    bool ongrab = false;
+    public GameObject object_ref2;
+    public static Func<GameObject> objectState;
+
+    
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -85,19 +93,39 @@ public class PlayerControllerAlt : MonoBehaviour
             if (grabbed == true)
             {
                 OnGrab?.Invoke();
-                isPressed = true;
-            }
+}
             else
-            {
-                OnThrow?.Invoke();
-                isPressed= false;
-            }
-            Debug.Log("funcionaxd");
-         
+{
+    OnThrow?.Invoke();
+}
+Debug.Log("funcionaxd");
+           // OnGrab?.Invoke();
+
+            // 
+
+            //objectGrabbed.transform.SetParent(point_ref.transform.parent);
+
         }
-       
+        // _switchState = !_switchState;
+
+
+        /* if (context.started)
+          {
+              Debug.Log("Grab Action STARTED");
+          }
+          if (context.performed)
+          {
+              Debug.Log("Grab Action PERFORMED - ¡funcionaxd!");
+              OnGrab?.Invoke();
+              //objectGrabbed.transform.SetParent(point_ref.transform.parent);
+          }
+          if (context.canceled)
+          {
+              Debug.Log("Grab Action CANCELED");
+          }*/
+
     }
-    
+
     void Update()
     {
         // Actualizamos el temporizador del cooldown del dash cada frame
@@ -115,7 +143,10 @@ public class PlayerControllerAlt : MonoBehaviour
             HandleMovement();
         }
     }
-
+    public bool Getpressed()
+    {
+        return isPressed;
+    }
    
     void LateUpdate()
     {

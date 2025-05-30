@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class GrabObjects : MonoBehaviour
@@ -8,13 +9,12 @@ public class GrabObjects : MonoBehaviour
     string[] tags = { "star", "ship", "moon", "alien", "saturn" };
    
     private Rigidbody rb;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [SerializeField] PlayerControllerAlt grabObjects;
+
     void Start()
     {
         
     }
-
-    // Update is called once per frame
     void Update()
     {
         
@@ -22,81 +22,79 @@ public class GrabObjects : MonoBehaviour
     private void OnEnable()
     {
         PlayerControllerAlt.OnThrow = ThrowObject;
+        //PlayerControllerAlt.objectState += GetObjectState;
     }
     private void OnDisable()
     {
         PlayerControllerAlt.OnThrow -= ThrowObject;
+        //PlayerControllerAlt.objectState -= GetObjectState;
     }
 
+    //
+
+    //
+  
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (object_ref != null) return;
-        for (int i = 0; i < tags.Length; i++) 
+        for (int i = 0; i < tags.Length; i++)
         {
             if (collision.gameObject.tag == tags[i])
             {
+
                 //collision.transform.position = point_ref.transform.position;
                 object_ref = collision.gameObject;
                 rb = object_ref.GetComponent<Rigidbody>();
                 // rb = null;
                 rb.isKinematic = true;
-                
                 Debug.Log("detectado");
                 PlayerControllerAlt.OnGrab = GrabObject;
                 //PlayerControllerAlt.OnThrow -= ThrowObject;
             }
         }
 
-        
-        
     }
     private void OnCollisionExit(Collision collision)
     {
-        if (object_ref == null) return;
-
         for (int i = 0; i < tags.Length; i++)
         {
 
             if (collision.gameObject.tag == tags[i])
             {
+
                 rb = object_ref.GetComponent<Rigidbody>();
 
                 PlayerControllerAlt.OnGrab -= GrabObject;
                 //PlayerControllerAlt.OnThrow = ThrowObject;
                 //DropObject();
-                // Debug.Log("saltao");
+                Debug.Log("saltao");
             }
-
-
         }
-        
+
+
     }
 
     public void GrabObject()
     {
-      
-            object_ref.transform.SetParent(point_ref.transform);
-            object_ref.transform.localPosition = Vector3.zero;
-            object_ref.transform.localRotation = Quaternion.identity;
-        
-        
+        object_ref.transform.SetParent(point_ref.transform);
+        object_ref.transform.localPosition = Vector3.zero;
+        object_ref.transform.localRotation = Quaternion.identity;
         // rb.useGravity = false;
         // rb = null;
 
 
-        // rb.isKinematic = true;
+        rb.isKinematic = true;
 
-        
-        //Debug.Log("agarrao?");
-     
+
+        Debug.Log("agarrao?");
+
     }
-    
+
     public void DropObject()
     {
-      
+
         object_ref.transform.SetParent(null);
-        
+        //object_ref = null;
 
 
     }
@@ -108,8 +106,6 @@ public class GrabObjects : MonoBehaviour
         Vector3 throwDirection = point_ref.transform.forward;
         rb.isKinematic = false;
         rb.AddForce(throwDirection * throwForce, ForceMode.Impulse);
-        object_ref = null;
-        rb = null;
         Debug.Log("Objeto " + object_ref.name + " lanzado con fuerza: " + throwForce + " en dirección " + throwDirection);
     }
 }
