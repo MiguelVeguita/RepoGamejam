@@ -5,6 +5,11 @@ TagManager:
   serializedVersion: 3
   tags:
   - object
+  - moon
+  - ship
+  - star
+  - alien
+  - saturn
   layers:
   - Default
   - TransparentFX

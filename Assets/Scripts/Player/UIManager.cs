@@ -4,8 +4,9 @@ public class UIManager : MonoBehaviour
 {
     public GameObject gameOverScreen; // Asigna esto en el Inspector
 
-    [SerializeField] TextMeshProUGUI AweightText;
-    [SerializeField] TextMeshProUGUI BweightText;
+    //[SerializeField] TMP_Text text;
+    [SerializeField] TMP_Text AweightText;
+    [SerializeField] TMP_Text BweightText;
     int Aweight;
     int Bweight;
     public void ShowGameOverScreen()
