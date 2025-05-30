@@ -42,7 +42,7 @@ public class PlayerControllerAlt : MonoBehaviour
     public static Action  OnGrab;
     public static Action OnThrow;
 
-
+    public bool isPressed = false;
     bool grabbed = false;
     void Awake()
     {
@@ -85,10 +85,12 @@ public class PlayerControllerAlt : MonoBehaviour
             if (grabbed == true)
             {
                 OnGrab?.Invoke();
+                isPressed = true;
             }
             else
             {
                 OnThrow?.Invoke();
+                isPressed= false;
             }
             Debug.Log("funcionaxd");
          

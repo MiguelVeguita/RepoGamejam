@@ -2,10 +2,12 @@ using UnityEngine;
 
 public class ChangeScene: MonoBehaviour
 {
-    
+    [SerializeField] private GameObject panelCine,MenuPrincipal,controles;
     void Start()
     {
-        
+        MenuPrincipal.SetActive(true);
+        panelCine.SetActive(false);
+        controles.SetActive(false);
     }
     void Update()
     {
@@ -23,8 +25,23 @@ public class ChangeScene: MonoBehaviour
     {
         SceneGlobalManager.Instance.LoaderScene(target);
     }
-    public void Test()
+    public void IniciarCine()
     {
-
+        panelCine.SetActive (true);
+        MenuPrincipal.SetActive(false);
+    }
+    public void IniciarControles()
+    {
+        controles.SetActive(true);
+        MenuPrincipal.SetActive(false);
+    }
+    public void IrMenuinicio()
+    {
+        controles.SetActive(false);
+        MenuPrincipal.SetActive(true);
+    }
+    public void Exit()
+    {
+        SceneGlobalManager.Instance.QuitGame();
     }
 }
