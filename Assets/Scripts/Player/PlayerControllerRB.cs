@@ -93,12 +93,12 @@ public class PlayerControllerAlt : MonoBehaviour
             if (grabbed == true)
             {
                 OnGrab?.Invoke();
-}
+        }
             else
-{
-    OnThrow?.Invoke();
-}
-Debug.Log("funcionaxd");
+            {
+                OnThrow?.Invoke();
+            }
+            Debug.Log("funcionaxd");
            // OnGrab?.Invoke();
 
             // 

@@ -10,6 +10,8 @@ TagManager:
   - star
   - alien
   - saturn
+  - grabbableTag
+  - lose
   layers:
   - Default
   - TransparentFX

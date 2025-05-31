@@ -7,105 +7,153 @@ public class GrabObjects : MonoBehaviour
     private GameObject object_ref;
     [SerializeField] float throwForce = 10f;
     string[] tags = { "star", "ship", "moon", "alien", "saturn" };
-   
-    private Rigidbody rb;
-    [SerializeField] PlayerControllerAlt grabObjects;
+
+    private Rigidbody rb_object_ref;
+
+    private bool isCurrentlyHolding = false;
 
     void Start()
     {
-        
     }
+
     void Update()
     {
-        
     }
+
     private void OnEnable()
     {
         PlayerControllerAlt.OnThrow = ThrowObject;
-        //PlayerControllerAlt.objectState += GetObjectState;
     }
+
     private void OnDisable()
     {
         PlayerControllerAlt.OnThrow -= ThrowObject;
-        //PlayerControllerAlt.objectState -= GetObjectState;
+        if (object_ref != null && !isCurrentlyHolding)
+        {
+            PlayerControllerAlt.OnGrab -= GrabObject;
+        }
     }
-
-    //
-
-    //
-  
 
     private void OnCollisionEnter(Collision collision)
     {
-        for (int i = 0; i < tags.Length; i++)
+        if (isCurrentlyHolding)
         {
-            if (collision.gameObject.tag == tags[i])
-            {
-
-                //collision.transform.position = point_ref.transform.position;
-                object_ref = collision.gameObject;
-                rb = object_ref.GetComponent<Rigidbody>();
-                // rb = null;
-                rb.isKinematic = true;
-                Debug.Log("detectado");
-                PlayerControllerAlt.OnGrab = GrabObject;
-                //PlayerControllerAlt.OnThrow -= ThrowObject;
-            }
+            return;
         }
 
-    }
-    private void OnCollisionExit(Collision collision)
-    {
         for (int i = 0; i < tags.Length; i++)
         {
-
             if (collision.gameObject.tag == tags[i])
             {
+                if (object_ref != null && object_ref != collision.gameObject)
+                {
+                    PlayerControllerAlt.OnGrab -= GrabObject;
+                }
 
-                rb = object_ref.GetComponent<Rigidbody>();
+                object_ref = collision.gameObject;
+                rb_object_ref = object_ref.GetComponent<Rigidbody>();
 
                 PlayerControllerAlt.OnGrab -= GrabObject;
-                //PlayerControllerAlt.OnThrow = ThrowObject;
-                //DropObject();
-                Debug.Log("saltao");
+                PlayerControllerAlt.OnGrab += GrabObject;
+
+                return;
             }
         }
+    }
 
+    private void OnCollisionExit(Collision collision)
+    {
+        if (isCurrentlyHolding)
+        {
+            return;
+        }
 
+        if (object_ref == collision.gameObject)
+        {
+            PlayerControllerAlt.OnGrab -= GrabObject;
+            object_ref = null;
+            rb_object_ref = null;
+        }
     }
 
     public void GrabObject()
     {
+        if (object_ref == null)
+        {
+            return;
+        }
+        if (isCurrentlyHolding)
+        {
+            return;
+        }
+        if (rb_object_ref == null)
+        {
+            rb_object_ref = object_ref.GetComponent<Rigidbody>();
+            if (rb_object_ref == null)
+            {
+                return;
+            }
+        }
+
+        isCurrentlyHolding = true;
+
         object_ref.transform.SetParent(point_ref.transform);
         object_ref.transform.localPosition = Vector3.zero;
         object_ref.transform.localRotation = Quaternion.identity;
-        // rb.useGravity = false;
-        // rb = null;
 
-
-        rb.isKinematic = true;
-
-
-        Debug.Log("agarrao?");
-
+        rb_object_ref.isKinematic = true;
     }
 
     public void DropObject()
     {
+        if (!isCurrentlyHolding || object_ref == null)
+        {
+            return;
+        }
+
+        if (rb_object_ref == null || rb_object_ref.gameObject != object_ref)
+        {
+            rb_object_ref = object_ref.GetComponent<Rigidbody>();
+            if (rb_object_ref == null)
+            {
+                if (object_ref != null) object_ref.transform.SetParent(null);
+                isCurrentlyHolding = false;
+                return;
+            }
+        }
 
         object_ref.transform.SetParent(null);
-        //object_ref = null;
-
-
+        rb_object_ref.isKinematic = false;
     }
-    //collision.transform.position = point_ref.transform.position;
-    // collision.transform.SetParent(point_ref.transform.parent);
+
     public void ThrowObject()
     {
+        if (!isCurrentlyHolding || object_ref == null)
+        {
+            return;
+        }
+
+        if (rb_object_ref == null || rb_object_ref.gameObject != object_ref)
+        {
+            rb_object_ref = object_ref.GetComponent<Rigidbody>();
+            if (rb_object_ref == null)
+            {
+                if (object_ref != null) object_ref.transform.SetParent(null);
+                isCurrentlyHolding = false;
+                object_ref = null;
+                return;
+            }
+        }
+
         DropObject();
+
         Vector3 throwDirection = point_ref.transform.forward;
-        rb.isKinematic = false;
-        rb.AddForce(throwDirection * throwForce, ForceMode.Impulse);
-        Debug.Log("Objeto " + object_ref.name + " lanzado con fuerza: " + throwForce + " en dirección " + throwDirection);
+        rb_object_ref.AddForce(throwDirection * throwForce, ForceMode.Impulse);
+
+        isCurrentlyHolding = false;
+
+        PlayerControllerAlt.OnGrab -= GrabObject;
+        object_ref = null;
+        rb_object_ref = null;
     }
 }
