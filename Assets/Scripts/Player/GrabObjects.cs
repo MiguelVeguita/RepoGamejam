@@ -34,7 +34,7 @@ public class GrabObjects : MonoBehaviour
         }
     }
 
-    private void OnCollisionEnter(Collision collision)
+    /*private void OnCollisionEnter(Collision collision)
     {
         if (isCurrentlyHolding)
         {
@@ -75,8 +75,49 @@ public class GrabObjects : MonoBehaviour
             object_ref = null;
             rb_object_ref = null;
         }
-    }
+    }*/
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (isCurrentlyHolding)
+        {
+            return;
+        }
+
+        for (int i = 0; i < tags.Length; i++)
+        {
+            if (other.gameObject.tag == tags[i])
+            {
+                if (object_ref != null && object_ref != other.gameObject)
+                {
+                    PlayerControllerAlt.OnGrab -= GrabObject;
+                }
+
+                object_ref = other.gameObject;
+                rb_object_ref = object_ref.GetComponent<Rigidbody>();
+
+                PlayerControllerAlt.OnGrab -= GrabObject;
+                PlayerControllerAlt.OnGrab += GrabObject;
+                //OnGrabSound.Invoke(0);
+                return;
+            }
+        }
+    }
+    private void OnTriggerExit(Collider other)
+    {
+        if (isCurrentlyHolding)
+        {
+            return;
+        }
+
+        if (object_ref == other.gameObject)
+        {
+            PlayerControllerAlt.OnGrab -= GrabObject;
+            // OnGrabSound.Invoke(0);
+            object_ref = null;
+            rb_object_ref = null;
+        }
+    }
     public void GrabObject()
     {
         if (object_ref == null)
