@@ -1493,22 +1493,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cameraTransform: {fileID: 330585546}
-  holdPoint: {fileID: 1315482179}
   moveSpeed: 5
   jumpForce: 4
   mouseSensitivity: 14.5
   maxLookUpAngle: 80
   minLookDownAngle: -80
-  dashForce: 25
-  dashDuration: 0.2
-  dashCooldown: 1
-  grabbableTag: grabbableTag
-  dropForce: 102.15
   groundCheck: {fileID: 352887510}
-  groundCheckRadius: 1.61
+  groundCheckDistance: 2.87
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  dashForce: 25
+  dashDuration: 0.2
+  dashCooldown: 1
+  minSlopeAngleToSlide: 15
+  slideAcceleration: 100
+  isPressed: 1
+  object_ref2: {fileID: 2042761779}
 --- !u!114 &352887505
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8684,7 +8685,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd440a107000f8d498a7efd9eae75f86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pesoCajaA: 0
+  pesoCajaA: 5.68
   pesoCajaB: 0
   sensibilidadInclinacion: 3.52
   anguloMaximoPeligro: 88.4

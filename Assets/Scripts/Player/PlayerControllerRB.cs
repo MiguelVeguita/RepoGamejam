@@ -1,14 +1,12 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
+using System; // Necesario para Action y Func
 
-[RequireComponent(typeof(Rigidbody))]
 public class PlayerControllerAlt : MonoBehaviour
 {
     [Header("Referencias")]
     [SerializeField] private Transform cameraTransform;
-    [Tooltip("Punto vacío hijo del jugador donde se sostendrá el objeto.")]
-    [SerializeField] private Transform holdPoint;
 
     [Header("Movimiento")]
     [SerializeField] private float moveSpeed = 5f;
@@ -19,22 +17,23 @@ public class PlayerControllerAlt : MonoBehaviour
     [SerializeField] private float maxLookUpAngle = 80f;
     [SerializeField] private float minLookDownAngle = -80f;
 
+    [Header("Chequeo de Suelo")]
+    [SerializeField] private Transform groundCheck; // Origen del Raycast para chequear suelo
+    // groundCheckRadius ya no se usará para CheckSphere, sino groundCheckDistance para Raycast
+    [SerializeField] private float groundCheckDistance = 0.3f; // Distancia del Raycast
+    [SerializeField] private LayerMask groundLayer;
+
     [Header("Dash")]
     [SerializeField] private float dashForce = 25f;
     [SerializeField] private float dashDuration = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
-    [Header("Agarre de Objetos")]
-    [Tooltip("La etiqueta que deben tener los objetos para ser agarrables.")]
-    [SerializeField] private string grabbableTag; // Cambia esto si usas otra tag
-    [SerializeField] private float dropForce = 5f;
+    // --- NUEVAS VARIABLES PARA DESLIZAMIENTO ---
+    [Header("Deslizamiento en Pendientes")]
+    [SerializeField] private float minSlopeAngleToSlide = 30f; // Ángulo mínimo para empezar a deslizar
+    [SerializeField] private float slideAcceleration = 8f;     // Fuerza de aceleración del deslizamiento
+    // --- FIN NUEVAS VARIABLES PARA DESLIZAMIENTO ---
 
-    [Header("Chequeo de Suelo")]
-    [SerializeField] private Transform groundCheck;
-    [SerializeField] private float groundCheckRadius = 0.2f;
-    [SerializeField] private LayerMask groundLayer;
-
-    // --- Componentes y variables internas ---
     private Rigidbody rb;
     private Vector2 moveInput;
     private Vector2 lookInput;
@@ -42,28 +41,33 @@ public class PlayerControllerAlt : MonoBehaviour
     private float xRotation = 0f;
     private bool isDashing = false;
     private float dashCooldownTimer = 0f;
-    private GameObject heldObject = null;
-    private Rigidbody heldObjectRb = null;
-    // private Collider heldObjectCollider = null; // No lo usaremos directamente por ahora
+
+    // --- NUEVAS VARIABLES DE ESTADO PARA DESLIZAMIENTO ---
+    private Vector3 groundNormal; // Normal de la superficie del suelo
+    private bool isSliding = false;   // Indica si el jugador está deslizando actualmente
+    // --- FIN NUEVAS VARIABLES DE ESTADO PARA DESLIZAMIENTO ---
+
+    // Variables de tu sistema de agarre (no se modifican)
+    public static Action OnGrab;
+    public static Action OnThrow;
+    public delegate void GrabFunc();
+    private GrabFunc grabFunc;
+    public bool isPressed = false;
+    bool grabbed = false;
+    bool ongrab = false;
+    public GameObject object_ref2;
+    public static Func<GameObject> objectState;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        if (cameraTransform == null && Camera.main != null)
-        {
-            cameraTransform = Camera.main.transform;
-        }
-        if (holdPoint == null)
-        {
-            Debug.LogError("Hold Point no está asignado en el PlayerController. Por favor, crea un objeto vacío hijo del jugador y asígnalo.", this);
-            enabled = false;
-        }
+        // --- AÑADIDO: Inicializar groundNormal ---
+        groundNormal = Vector3.up;
+        // --- FIN AÑADIDO ---
     }
 
-    // --- MÉTODOS PÚBLICOS PARA EL INPUT ---
     public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
@@ -76,10 +80,12 @@ public class PlayerControllerAlt : MonoBehaviour
 
     public void OnJump(InputAction.CallbackContext context)
     {
-        if (context.performed && isGrounded && !isDashing)
+        // --- MODIFICADO: Añadida la condición !isSliding ---
+        if (context.performed && isGrounded && !isDashing && !isSliding)
         {
             HandleJump();
         }
+        // --- FIN MODIFICADO ---
     }
 
     public void OnDash(InputAction.CallbackContext context)
@@ -90,39 +96,23 @@ public class PlayerControllerAlt : MonoBehaviour
         }
     }
 
-    public void OnInteract(InputAction.CallbackContext context) 
+    public void OnGrabAction(InputAction.CallbackContext context)
     {
         if (context.performed)
         {
-            
-                DropObject();
-            
-        }
-    }
-
-    // --- LÓGICA DE COLISIÓN PARA AGARRAR ---
-    private void OnCollisionEnter(Collision collision)
-    {
-        // Solo agarramos si no tenemos ya un objeto y el objeto tiene la tag correcta
-        if (heldObject == null && collision.gameObject.CompareTag(grabbableTag))
-        {
-            Debug.Log("Objeto agarrable colisionado: " + collision.gameObject.name);
-            heldObject = collision.gameObject;
-            heldObjectRb = heldObject.GetComponent<Rigidbody>();
-
-            if (heldObjectRb != null)
+            grabbed = !grabbed;
+            if (grabbed == true)
             {
-                heldObjectRb.isKinematic = true; // Hacerlo kinemático para que no le afecte la física mientras se lleva
+                OnGrab?.Invoke();
             }
-
-            // Emparentar y posicionar en el holdPoint
-            heldObject.transform.SetParent(holdPoint);
-            heldObject.transform.localPosition = Vector3.zero;
-            heldObject.transform.localRotation = Quaternion.identity; // O una rotación específica si prefieres
+            else
+            {
+                OnThrow?.Invoke();
+            }
+            Debug.Log("funcionaxd");
         }
     }
 
-    // --- LÓGICA PRINCIPAL ---
     void Update()
     {
         if (dashCooldownTimer > 0f)
@@ -133,11 +123,29 @@ public class PlayerControllerAlt : MonoBehaviour
 
     void FixedUpdate()
     {
-        CheckGround();
-        if (!isDashing)
+        // --- MODIFICADO: CheckGround ahora también actualiza el estado de deslizamiento ---
+        CheckGroundAndUpdateSlidingState();
+        // --- FIN MODIFICADO ---
+
+        // --- NUEVA LÓGICA: Si está deslizando, aplicar fuerza de deslizamiento ---
+        if (isSliding)
+        {
+            HandleSliding();
+        }
+        // --- FIN NUEVA LÓGICA ---
+
+        // --- MODIFICADO: Añadida la condición !isSliding para HandleMovement ---
+        if (!isDashing && !isSliding)
         {
             HandleMovement();
         }
+        // --- FIN MODIFICADO ---
+    }
+
+    // Tu método Getpressed (no se modifica)
+    public bool Getpressed()
+    {
+        return isPressed;
     }
 
     void LateUpdate()
@@ -145,28 +153,93 @@ public class PlayerControllerAlt : MonoBehaviour
         HandleLook();
     }
 
-    // --- MÉTODOS DE MOVIMIENTO Y ACCIONES ---
-    private void CheckGround()
+    private IEnumerator PerformDash()
     {
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
+        isDashing = true;
+        dashCooldownTimer = dashCooldown;
+        Vector3 dashDirection = transform.forward;
+        // Considera si el dash debería funcionar diferente si estás en el aire o deslizando
+        // Por ahora, lo dejamos igual, pero si estás deslizando, el dash podría ser menos efectivo o cancelarlo.
+        rb.AddForce(dashDirection * dashForce, ForceMode.VelocityChange);
+        yield return new WaitForSeconds(dashDuration);
+        isDashing = false;
     }
 
-    private void HandleMovement()
+    // --- MÉTODO CheckGround MODIFICADO ---
+    private void CheckGroundAndUpdateSlidingState()
+    {
+        RaycastHit hit;
+        // Usamos el transform 'groundCheck' como el origen del rayo.
+        // El rayo se lanza un poco hacia arriba del 'groundCheck.position' para evitar que empiece dentro del suelo.
+        Vector3 rayOrigin = groundCheck.position + Vector3.up * 0.05f;
+
+        if (Physics.Raycast(rayOrigin, Vector3.down, out hit, groundCheckDistance + 0.05f, groundLayer))
+        {
+            isGrounded = true;
+            groundNormal = hit.normal;
+
+            float slopeAngle = Vector3.Angle(Vector3.up, groundNormal);
+            if (slopeAngle > minSlopeAngleToSlide)
+            {
+                isSliding = true;
+            }
+            else
+            {
+                isSliding = false;
+            }
+        }
+        else
+        {
+            isGrounded = false;
+            isSliding = false;
+            groundNormal = Vector3.up; // Si no está en el suelo, no hay normal de suelo y no desliza.
+        }
+    }
+    // --- FIN MÉTODO CheckGround MODIFICADO ---
+
+    private void HandleMovement() // Este método ahora solo se llama si !isDashing y !isSliding
     {
         Vector3 moveDirection = transform.forward * moveInput.y + transform.right * moveInput.x;
         moveDirection.Normalize();
+
         Vector3 targetVelocity = moveDirection * moveSpeed;
         targetVelocity.y = rb.linearVelocity.y;
         rb.linearVelocity = targetVelocity;
     }
 
+    // --- NUEVO MÉTODO: HandleSliding ---
+    private void HandleSliding()
+    {
+        // Calcular la dirección del deslizamiento basada en la normal del suelo
+        Vector3 slideDirection = Vector3.ProjectOnPlane(Vector3.down, groundNormal).normalized;
+
+        // Calcular un factor de deslizamiento basado en qué tan empinada es la pendiente
+        // más allá del ángulo mínimo para deslizar.
+        float currentSlopeAngle = Vector3.Angle(Vector3.up, groundNormal);
+        float slideRatio = (currentSlopeAngle - minSlopeAngleToSlide) / (90f - minSlopeAngleToSlide);
+        slideRatio = Mathf.Clamp01(slideRatio); // Asegurar que esté entre 0 y 1
+
+        // Aplicar la fuerza de deslizamiento.
+        // ForceMode.Acceleration ignora la masa, aplicando una aceleración constante.
+        rb.AddForce(slideDirection * slideAcceleration * slideRatio, ForceMode.Acceleration);
+
+        // Opcional: Podrías querer reducir el control del jugador sobre el movimiento horizontal
+        // mientras desliza, pero como HandleMovement() ya no se llama, esto ya sucede.
+        // Si quisieras que el jugador tenga *algo* de influencia mientras desliza,
+        // podrías aplicar una porción de su input aquí, o modificar HandleMovement.
+    }
+    // --- FIN NUEVO MÉTODO: HandleSliding ---
+
     private void HandleLook()
     {
         float mouseX = lookInput.x * mouseSensitivity * Time.deltaTime;
         float mouseY = lookInput.y * mouseSensitivity * Time.deltaTime;
+
         transform.Rotate(Vector3.up * mouseX);
+
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, minLookDownAngle, maxLookUpAngle);
+
         cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
     }
 
@@ -176,43 +249,21 @@ public class PlayerControllerAlt : MonoBehaviour
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
 
-    private IEnumerator PerformDash()
-    {
-        isDashing = true;
-        dashCooldownTimer = dashCooldown;
-        Vector3 dashDirection = transform.forward;
-        if (moveInput.magnitude > 0.1f)
-        {
-            dashDirection = (transform.forward * moveInput.y + transform.right * moveInput.x).normalized;
-        }
-        float originalYVelocity = rb.linearVelocity.y;
-        rb.linearVelocity = dashDirection * dashForce + Vector3.up * originalYVelocity;
-        yield return new WaitForSeconds(dashDuration);
-        isDashing = false;
-    }
-
-    private void DropObject()
-    {
-        if (heldObject == null) return;
-
-        heldObject.transform.SetParent(null); // Quitarlo como hijo del holdPoint
-
-        if (heldObjectRb != null)
-        {
-            heldObjectRb.isKinematic = false; // Devolverle la física
-            // Aplicar una pequeña fuerza hacia adelante o simplemente dejarlo caer
-            heldObjectRb.AddForce(cameraTransform.forward * dropForce, ForceMode.VelocityChange);
-        }
-
-        Debug.Log("Objeto soltado: " + heldObject.name);
-        heldObject = null;
-        heldObjectRb = null;
-    }
-
-    // Opcional: Dibujar Gizmos para debug
     void OnDrawGizmosSelected()
     {
-        if (groundCheck != null) { Gizmos.color = Color.yellow; Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius); }
-        // No es necesario dibujar el rayo de agarre con este método
+        if (groundCheck != null)
+        {
+            Gizmos.color = Color.green; // Color del rayo de chequeo de suelo
+            // Dibuja el rayo desde un poco arriba del groundCheck para que se vea mejor
+            Vector3 rayGizmoOrigin = groundCheck.position + Vector3.up * 0.05f;
+            Gizmos.DrawLine(rayGizmoOrigin, rayGizmoOrigin + Vector3.down * (groundCheckDistance + 0.05f));
+
+            // Si está en el suelo, dibuja la normal del suelo
+            if (isGrounded)
+            {
+                Gizmos.color = Color.blue;
+                Gizmos.DrawLine(groundCheck.position, groundCheck.position + groundNormal * 1f);
+            }
+        }
     }
 }
