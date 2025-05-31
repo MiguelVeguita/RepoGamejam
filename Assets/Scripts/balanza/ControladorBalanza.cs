@@ -30,7 +30,16 @@ public class ControladorBalanza : MonoBehaviour
         // Asegurarse de que el eje de rotación esté normalizado por si acaso
         ejeDeRotacionLocal.Normalize();
     }
-
+    private void OnEnable()
+    {
+        Boxes.OnACollisionWeight += AnadirPesoACajaA;
+        Boxes.OnBCollisionWeight += AnadirPesoACajaB;
+    }
+    private void OnDisable()
+    {
+        Boxes.OnACollisionWeight -= AnadirPesoACajaA;
+        Boxes.OnBCollisionWeight -= AnadirPesoACajaB;
+    }
     void Update()
     {
         // 1. Calcular la diferencia de peso
@@ -68,18 +77,18 @@ public class ControladorBalanza : MonoBehaviour
             // Aquí podrías añadir lógica adicional, como desactivar este script para que no siga rotando,
             // o iniciar una animación de caída del jugador, etc.
             // Por ahora, solo mostramos un mensaje y disparamos el evento.
-            enabled = false; // Desactivar este script para detener la lógica de la balanza
+           // enabled = false; // Desactivar este script para detener la lógica de la balanza
         }
     }
 
     // Métodos públicos para que otros scripts puedan añadir peso a las cajas
-    public void AnadirPesoACajaA(float cantidad)
+    public void AnadirPesoACajaA(int cantidad)
     {
         pesoCajaA += cantidad;
         Debug.Log($"Añadido {cantidad} a Caja A. Nuevo peso: {pesoCajaA}");
     }
 
-    public void AnadirPesoACajaB(float cantidad)
+    public void AnadirPesoACajaB(int cantidad)
     {
         pesoCajaB += cantidad;
         Debug.Log($"Añadido {cantidad} a Caja B. Nuevo peso: {pesoCajaB}");
