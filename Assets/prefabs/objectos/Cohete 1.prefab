@@ -273,8 +273,9 @@ GameObject:
   - component: {fileID: 7741991522511151297}
   - component: {fileID: 3515455235653087405}
   - component: {fileID: -2950903050031376226}
+  - component: {fileID: -6429182803615071031}
   m_Layer: 0
-  m_Name: Cohete
+  m_Name: Cohete 1
   m_TagString: ship
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -406,8 +407,21 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.38
+  m_Radius: 0.37978655
   m_Center: {x: 0, y: -0.124194995, z: -0.00000029802322}
+--- !u!114 &-6429182803615071031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1830805247773445002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 219af79363369bb46abdb3781762e27e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fallSpeed: 2
 --- !u!1 &2278012057497696022
 GameObject:
   m_ObjectHideFlags: 0

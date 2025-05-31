@@ -13,9 +13,10 @@ GameObject:
   - component: {fileID: 814434370435756394}
   - component: {fileID: 3752756939861355342}
   - component: {fileID: -3208814230851697052}
+  - component: {fileID: 8813558356658146885}
   m_Layer: 0
-  m_Name: Estrella
-  m_TagString: star
+  m_Name: Estrella 1
+  m_TagString: ship
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -67,6 +68,7 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: f7764f6cf4352e24783de371802b1794, type: 2}
+  - {fileID: 2100000, guid: 2b4191911e1e1f641826e349614eb0e0, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -136,3 +138,16 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &8813558356658146885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2190710949091671100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 219af79363369bb46abdb3781762e27e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fallSpeed: 2

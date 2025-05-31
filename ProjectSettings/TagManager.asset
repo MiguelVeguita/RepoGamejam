@@ -7,6 +7,9 @@ TagManager:
   - saturn
   - ship
   - moon
+  - star
+  - alien
+  - lose
   layers:
   - Default
   - TransparentFX
