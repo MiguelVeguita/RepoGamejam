@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
-using System; // Necesario para Action y Func
+using System; 
 
 public class PlayerControllerAlt : MonoBehaviour
 {
@@ -18,9 +18,9 @@ public class PlayerControllerAlt : MonoBehaviour
     [SerializeField] private float minLookDownAngle = -80f;
 
     [Header("Chequeo de Suelo")]
-    [SerializeField] private Transform groundCheck; // Origen del Raycast para chequear suelo
-    // groundCheckRadius ya no se usará para CheckSphere, sino groundCheckDistance para Raycast
-    [SerializeField] private float groundCheckDistance = 0.3f; // Distancia del Raycast
+    [SerializeField] private Transform groundCheck;
+    
+    [SerializeField] private float groundCheckDistance = 0.3f; 
     [SerializeField] private LayerMask groundLayer;
 
     [Header("Dash")]
@@ -28,11 +28,9 @@ public class PlayerControllerAlt : MonoBehaviour
     [SerializeField] private float dashDuration = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
-    // --- NUEVAS VARIABLES PARA DESLIZAMIENTO ---
     [Header("Deslizamiento en Pendientes")]
-    [SerializeField] private float minSlopeAngleToSlide = 30f; // Ángulo mínimo para empezar a deslizar
-    [SerializeField] private float slideAcceleration = 8f;     // Fuerza de aceleración del deslizamiento
-    // --- FIN NUEVAS VARIABLES PARA DESLIZAMIENTO ---
+    [SerializeField] private float minSlopeAngleToSlide = 30f; 
+    [SerializeField] private float slideAcceleration = 8f;   
 
     private Rigidbody rb;
     private Vector2 moveInput;
@@ -42,12 +40,10 @@ public class PlayerControllerAlt : MonoBehaviour
     private bool isDashing = false;
     private float dashCooldownTimer = 0f;
 
-    // --- NUEVAS VARIABLES DE ESTADO PARA DESLIZAMIENTO ---
-    private Vector3 groundNormal; // Normal de la superficie del suelo
-    private bool isSliding = false;   // Indica si el jugador está deslizando actualmente
-    // --- FIN NUEVAS VARIABLES DE ESTADO PARA DESLIZAMIENTO ---
+   
+    private Vector3 groundNormal; 
+    private bool isSliding = false;  
 
-    // Variables de tu sistema de agarre (no se modifican)
     public static Action OnGrab;
     public static Action OnThrow;
     public delegate void GrabFunc();
@@ -58,14 +54,17 @@ public class PlayerControllerAlt : MonoBehaviour
     public GameObject object_ref2;
     public static Func<GameObject> objectState;
 
+
+    public static event Action OnLose;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        // --- AÑADIDO: Inicializar groundNormal ---
+
         groundNormal = Vector3.up;
-        // --- FIN AÑADIDO ---
+
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -80,12 +79,12 @@ public class PlayerControllerAlt : MonoBehaviour
 
     public void OnJump(InputAction.CallbackContext context)
     {
-        // --- MODIFICADO: Añadida la condición !isSliding ---
+
         if (context.performed && isGrounded && !isDashing && !isSliding)
         {
             HandleJump();
         }
-        // --- FIN MODIFICADO ---
+
     }
 
     public void OnDash(InputAction.CallbackContext context)
@@ -95,7 +94,15 @@ public class PlayerControllerAlt : MonoBehaviour
             StartCoroutine(PerformDash());
         }
     }
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject.tag == "lose")
+        {
+            Debug.Log("perderXD");
+            OnLose?.Invoke();
 
+        }
+    }
     public void OnGrabAction(InputAction.CallbackContext context)
     {
         if (context.performed)
@@ -123,26 +130,22 @@ public class PlayerControllerAlt : MonoBehaviour
 
     void FixedUpdate()
     {
-        // --- MODIFICADO: CheckGround ahora también actualiza el estado de deslizamiento ---
+       
         CheckGroundAndUpdateSlidingState();
-        // --- FIN MODIFICADO ---
 
-        // --- NUEVA LÓGICA: Si está deslizando, aplicar fuerza de deslizamiento ---
         if (isSliding)
         {
             HandleSliding();
         }
-        // --- FIN NUEVA LÓGICA ---
-
-        // --- MODIFICADO: Añadida la condición !isSliding para HandleMovement ---
+      
         if (!isDashing && !isSliding)
         {
             HandleMovement();
         }
-        // --- FIN MODIFICADO ---
+
     }
 
-    // Tu método Getpressed (no se modifica)
+ 
     public bool Getpressed()
     {
         return isPressed;
@@ -158,19 +161,17 @@ public class PlayerControllerAlt : MonoBehaviour
         isDashing = true;
         dashCooldownTimer = dashCooldown;
         Vector3 dashDirection = transform.forward;
-        // Considera si el dash debería funcionar diferente si estás en el aire o deslizando
-        // Por ahora, lo dejamos igual, pero si estás deslizando, el dash podría ser menos efectivo o cancelarlo.
+      
         rb.AddForce(dashDirection * dashForce, ForceMode.VelocityChange);
         yield return new WaitForSeconds(dashDuration);
         isDashing = false;
     }
 
-    // --- MÉTODO CheckGround MODIFICADO ---
+  
     private void CheckGroundAndUpdateSlidingState()
     {
         RaycastHit hit;
-        // Usamos el transform 'groundCheck' como el origen del rayo.
-        // El rayo se lanza un poco hacia arriba del 'groundCheck.position' para evitar que empiece dentro del suelo.
+      
         Vector3 rayOrigin = groundCheck.position + Vector3.up * 0.05f;
 
         if (Physics.Raycast(rayOrigin, Vector3.down, out hit, groundCheckDistance + 0.05f, groundLayer))
@@ -192,12 +193,12 @@ public class PlayerControllerAlt : MonoBehaviour
         {
             isGrounded = false;
             isSliding = false;
-            groundNormal = Vector3.up; // Si no está en el suelo, no hay normal de suelo y no desliza.
+            groundNormal = Vector3.up;
         }
     }
-    // --- FIN MÉTODO CheckGround MODIFICADO ---
+ 
 
-    private void HandleMovement() // Este método ahora solo se llama si !isDashing y !isSliding
+    private void HandleMovement()
     {
         Vector3 moveDirection = transform.forward * moveInput.y + transform.right * moveInput.x;
         moveDirection.Normalize();
@@ -207,28 +208,18 @@ public class PlayerControllerAlt : MonoBehaviour
         rb.linearVelocity = targetVelocity;
     }
 
-    // --- NUEVO MÉTODO: HandleSliding ---
+
     private void HandleSliding()
     {
-        // Calcular la dirección del deslizamiento basada en la normal del suelo
+
         Vector3 slideDirection = Vector3.ProjectOnPlane(Vector3.down, groundNormal).normalized;
 
-        // Calcular un factor de deslizamiento basado en qué tan empinada es la pendiente
-        // más allá del ángulo mínimo para deslizar.
         float currentSlopeAngle = Vector3.Angle(Vector3.up, groundNormal);
         float slideRatio = (currentSlopeAngle - minSlopeAngleToSlide) / (90f - minSlopeAngleToSlide);
-        slideRatio = Mathf.Clamp01(slideRatio); // Asegurar que esté entre 0 y 1
-
-        // Aplicar la fuerza de deslizamiento.
-        // ForceMode.Acceleration ignora la masa, aplicando una aceleración constante.
+        slideRatio = Mathf.Clamp01(slideRatio); 
         rb.AddForce(slideDirection * slideAcceleration * slideRatio, ForceMode.Acceleration);
-
-        // Opcional: Podrías querer reducir el control del jugador sobre el movimiento horizontal
-        // mientras desliza, pero como HandleMovement() ya no se llama, esto ya sucede.
-        // Si quisieras que el jugador tenga *algo* de influencia mientras desliza,
-        // podrías aplicar una porción de su input aquí, o modificar HandleMovement.
     }
-    // --- FIN NUEVO MÉTODO: HandleSliding ---
+
 
     private void HandleLook()
     {
@@ -253,12 +244,9 @@ public class PlayerControllerAlt : MonoBehaviour
     {
         if (groundCheck != null)
         {
-            Gizmos.color = Color.green; // Color del rayo de chequeo de suelo
-            // Dibuja el rayo desde un poco arriba del groundCheck para que se vea mejor
+            Gizmos.color = Color.green; 
             Vector3 rayGizmoOrigin = groundCheck.position + Vector3.up * 0.05f;
             Gizmos.DrawLine(rayGizmoOrigin, rayGizmoOrigin + Vector3.down * (groundCheckDistance + 0.05f));
-
-            // Si está en el suelo, dibuja la normal del suelo
             if (isGrounded)
             {
                 Gizmos.color = Color.blue;

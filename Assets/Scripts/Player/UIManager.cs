@@ -7,6 +7,8 @@ public class UIManager : MonoBehaviour
     //[SerializeField] TMP_Text text;
     [SerializeField] TMP_Text AweightText;
     [SerializeField] TMP_Text BweightText;
+
+    //[SerializeField] GameObject LosePanel;
     int Aweight;
     int Bweight;
     public void ShowGameOverScreen()
@@ -22,11 +24,13 @@ public class UIManager : MonoBehaviour
     {
         Boxes.OnACollisionWeight += WeightAType;
         Boxes.OnBCollisionWeight += WeightBType;
+        PlayerControllerAlt.OnLose += ShowGameOverScreen;
     }
     private void OnDisable()
     {
         Boxes.OnACollisionWeight -= WeightAType;
         Boxes.OnBCollisionWeight -= WeightBType;
+        PlayerControllerAlt.OnLose -= ShowGameOverScreen;
     }
     private void Update()
     {
@@ -41,4 +45,5 @@ public class UIManager : MonoBehaviour
     {
         Bweight += weight;
     }
+
 }

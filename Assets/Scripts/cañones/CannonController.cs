@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic; // Necesario para List<T>
+using Unity.VisualScripting;
 using UnityEngine;
 using static UnityEngine.InputSystem.Controls.AxisControl;
 
@@ -7,22 +8,22 @@ public class CannonController : MonoBehaviour
 {
     [Header("Configuración de Cañones")]
     [Tooltip("Arrastra aquí los Transforms de los puntos de disparo de tus 4 cañones.")]
-    public Transform[] cannonMuzzles; 
+    public Transform[] cannonMuzzles; // cañones
 
     [Header("Configuración de Objetos")]
     [Tooltip("Arrastra aquí los Prefabs de los objetos que los cañones pueden disparar (estrella, planeta, etc.).")]
-    public List<GameObject> objectPrefabs; 
+    public List<GameObject> objectPrefabs; //list prefabs generar
 
     [Tooltip("Etiqueta que tendrán los objetos lanzados para que el jugador pueda agarrarlos.")]
-    public string launchedObjectTag = "ObjetoAgarrable"; 
+  
 
     [Header("Configuración de Disparo")]
-    [Tooltip("La fuerza con la que se lanzarán los objetos.")]
+
     public float launchForce = 15f; 
     [Tooltip("Número de objetos a lanzar en una secuencia/ola.")]
-    public int objectsPerWave = 5; 
+    public int objectsPerWave = 5; //olas de lanzamiento 
     [Tooltip("Tiempo en segundos entre cada disparo de la ola.")]
-    public float timeBetweenShots = 2f; 
+    public float timeBetweenShots = 2f; //lanza los objeto en un tiempo de dos segundos
     [Tooltip("Tiempo en segundos antes de que comience la PRIMERA ola de disparos.")]
     public float initialDelay = 3f; 
     [Tooltip("Tiempo en segundos de espera entre el final de una ola y el inicio de la siguiente.")]
@@ -40,7 +41,7 @@ public class CannonController : MonoBehaviour
             return;
         }
        
-        foreach (Transform muzzle in cannonMuzzles)
+        foreach (Transform muzzle in cannonMuzzles)// identifica los cañones XD y su tranforms
         {
             if (muzzle == null)
             {
@@ -77,8 +78,21 @@ public class CannonController : MonoBehaviour
         yield return new WaitForSeconds(initialDelay);
         StartCoroutine(LaunchObjectWave()); 
     }
-
-   
+    //
+   void StopWaves()
+    {
+       
+        StopAllCoroutines();
+    }
+    private void OnEnable()
+    {
+        PlayerControllerAlt.OnLose += StopWaves;
+    }
+    private void OnDisable()
+    {
+        PlayerControllerAlt.OnLose -= StopWaves;
+    }
+    //
     IEnumerator LaunchObjectWave()
     {
         if (isWaveActive)
