@@ -31,6 +31,17 @@ public class AudioManager : MonoBehaviour
         _fx.value = f;
         _audioGameMixer.SetFloat("SFXVolume", Mathf.Log10(f) * 20f);
     }
+
+    private void OnEnable()
+    {
+
+        PlayerControllerAlt.OnGrabSound += PlaysfxIndex;
+    }
+    private void OnDisable()
+    {
+        PlayerControllerAlt.OnGrabSound -= PlaysfxIndex;
+
+    }
     public void PlaySound()
     {
         _sound.Play();
@@ -42,10 +53,13 @@ public class AudioManager : MonoBehaviour
     public void PlaysfxIndex(int index)
     {
         _sound.clip = _audioData.sfxClip[index];
+        _sound.Play();
+        Debug.Log("playing sound");
     }
     public void PlayMusicIndex(int index)
     {
         _sound.clip = _audioData.musicClip[index];
     }
+
 
 }

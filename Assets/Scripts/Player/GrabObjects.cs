@@ -9,7 +9,7 @@ public class GrabObjects : MonoBehaviour
     string[] tags = { "star", "ship", "moon", "alien", "saturn" };
 
     private Rigidbody rb_object_ref;
-
+   
     private bool isCurrentlyHolding = false;
 
     void Start()
@@ -52,10 +52,10 @@ public class GrabObjects : MonoBehaviour
 
                 object_ref = collision.gameObject;
                 rb_object_ref = object_ref.GetComponent<Rigidbody>();
-
+                
                 PlayerControllerAlt.OnGrab -= GrabObject;
                 PlayerControllerAlt.OnGrab += GrabObject;
-
+                //OnGrabSound.Invoke(0);
                 return;
             }
         }
@@ -71,6 +71,7 @@ public class GrabObjects : MonoBehaviour
         if (object_ref == collision.gameObject)
         {
             PlayerControllerAlt.OnGrab -= GrabObject;
+           // OnGrabSound.Invoke(0);
             object_ref = null;
             rb_object_ref = null;
         }

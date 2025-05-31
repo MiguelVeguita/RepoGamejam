@@ -16,4 +16,8 @@ MonoBehaviour:
   _SFX: 1
   _music: 1
   musicClip: []
-  sfxClip: []
+  sfxClip:
+  - {fileID: 8300000, guid: 633491cad16447642ac3d1b2414a8dc9, type: 3}
+  - {fileID: 8300000, guid: 3fe33d856f12589478d2e6280e0f966e, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}

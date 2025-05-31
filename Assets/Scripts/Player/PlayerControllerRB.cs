@@ -7,6 +7,9 @@ public class PlayerControllerAlt : MonoBehaviour
 {
     [Header("Referencias")]
     [SerializeField] private Transform cameraTransform;
+    [SerializeField] private Animator animator; // << AÑADIDO: Referencia al Animator
+
+
 
     [Header("Movimiento")]
     [SerializeField] private float moveSpeed = 5f;
@@ -54,8 +57,14 @@ public class PlayerControllerAlt : MonoBehaviour
     public GameObject object_ref2;
     public static Func<GameObject> objectState;
 
+    private int moveSpeedAnimHash;
 
     public static event Action OnLose;
+
+
+
+
+    public static event Action<int> OnGrabSound;
 
     void Awake()
     {
@@ -64,6 +73,26 @@ public class PlayerControllerAlt : MonoBehaviour
         Cursor.visible = false;
 
         groundNormal = Vector3.up;
+
+        // --- LÓGICA DE ANIMACIÓN INTEGRADA ---
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+        }
+        if (animator == null)
+        {
+            animator = GetComponentInChildren<Animator>();
+        }
+        if (animator == null)
+        {
+            Debug.LogError("Animator no encontrado en el Player o sus hijos. Asegúrate de asignarlo.");
+        }
+        else
+        {
+            // Asegúrate de que "MovementSpeed" coincida con el parámetro en tu Animator Controller.
+            moveSpeedAnimHash = Animator.StringToHash("MovementSpeed");
+        }
+
 
     }
 
@@ -99,7 +128,11 @@ public class PlayerControllerAlt : MonoBehaviour
         if(collision.gameObject.tag == "lose")
         {
             Debug.Log("perderXD");
+            Cursor.lockState = CursorLockMode.Confined;
+            Cursor.visible = true;
             OnLose?.Invoke();
+            
+            
 
         }
     }
@@ -107,14 +140,18 @@ public class PlayerControllerAlt : MonoBehaviour
     {
         if (context.performed)
         {
+            OnGrabSound.Invoke(0);
             grabbed = !grabbed;
             if (grabbed == true)
             {
                 OnGrab?.Invoke();
+                 
+
             }
             else
             {
                 OnThrow?.Invoke();
+
             }
             Debug.Log("funcionaxd");
         }
@@ -206,6 +243,16 @@ public class PlayerControllerAlt : MonoBehaviour
         Vector3 targetVelocity = moveDirection * moveSpeed;
         targetVelocity.y = rb.linearVelocity.y;
         rb.linearVelocity = targetVelocity;
+        if (animator != null)
+        {
+            // Usamos la magnitud del vector de input para determinar la "velocidad" para la animación.
+            // Esto es consistente con PlayerControllerxd.
+            // Si el jugador está en el suelo y se mueve, moveInput.magnitude será > 0.
+            // Si está en el aire y se mueve, también. Si está quieto, será 0.
+            float animationSpeed = Mathf.Clamp01(moveInput.magnitude);
+            animator.SetFloat(moveSpeedAnimHash, animationSpeed);
+        }
+
     }
 
 
