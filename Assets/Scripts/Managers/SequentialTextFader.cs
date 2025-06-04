@@ -1,118 +1,105 @@
 using UnityEngine;
-using TMPro; // Necesario si usas TextMeshProUGUI
-// using UnityEngine.UI; // Descomenta esta línea si usas el componente UI.Text antiguo
+using DG.Tweening; // Asegúrate de que DOTween esté importado
 using System.Collections;
 using System.Collections.Generic;
 
 public class SequentialTextFader : MonoBehaviour
 {
     [System.Serializable]
-    public class FadeTextItem
+    public class FadeItem
     {
-        // Arrastra tu elemento de texto aquí desde la Jerarquía
-        public TextMeshProUGUI textElement; // Para TextMeshPro
-        // public Text textElement; // Descomenta y usa esto para UI.Text antiguo
+        [Tooltip("Arrastra aquí el GameObject que tiene el CanvasGroup. Este objeto debería contener el texto y el script ButtonEffect.")]
+        public CanvasGroup elementCanvasGroup;
 
-        [Tooltip("Retraso en segundos ANTES de que este texto comience su fade, después de que el anterior HAYA TERMINADO.")]
+        [Tooltip("Retraso en segundos ANTES de que este elemento comience su fade, después de que el anterior HAYA TERMINADO.")]
         public float delayAfterPreviousEnds = 0.2f;
 
-        [Tooltip("Duración en segundos del efecto de fade-in para este texto.")]
+        [Tooltip("Duración en segundos del efecto de fade-in para este elemento.")]
         public float fadeDuration = 1.0f;
     }
 
-    [Tooltip("Lista de elementos de texto que se desvanecerán en secuencia.")]
-    public List<FadeTextItem> textItems = new List<FadeTextItem>();
+    [Tooltip("Lista de elementos (con CanvasGroup) que se desvanecerán en secuencia.")]
+    public List<FadeItem> itemsToFade = new List<FadeItem>();
 
-    private int currentItemIndex = 0; // Índice para rastrear el elemento actual
+    private int currentItemIndex = 0;
 
     void Start()
     {
-        // 1. Inicializar todos los textos para que sean invisibles (alpha = 0)
-        // Este foreach es solo para la configuración inicial, no para la animación secuencial.
-        foreach (FadeTextItem item in textItems)
+        // 1. Inicializar todos los CanvasGroups: invisibles y no interactuables.
+        // El color del TextMeshProUGUI (incluyendo su alfa) debe estar como lo quieres al final (usualmente alfa = 1).
+        // ButtonEffect tomará el color inicial del TextMeshProUGUI en su propio Start().
+        foreach (FadeItem item in itemsToFade)
         {
-            if (item.textElement != null)
+            if (item.elementCanvasGroup != null)
             {
-                Color currentColor = item.textElement.color;
-                item.textElement.color = new Color(currentColor.r, currentColor.g, currentColor.b, 0f);
+                item.elementCanvasGroup.alpha = 0f;
+                item.elementCanvasGroup.interactable = false;
+                item.elementCanvasGroup.blocksRaycasts = false; // Importante para evitar clics "fantasma"
             }
             else
             {
-                Debug.LogWarning("Un Text Element en la lista no está asignado y será ignorado.");
+                Debug.LogWarning("Un elementCanvasGroup en la lista no está asignado y será ignorado.", this);
             }
         }
 
-        // 2. Iniciar la secuencia de fade-in si hay elementos
-        if (textItems.Count > 0)
+        // 2. Iniciar la secuencia de fade-in.
+        if (itemsToFade.Count > 0)
         {
             StartCoroutine(FadeInSequenceCoroutine());
         }
         else
         {
-            Debug.LogWarning("La lista 'textItems' está vacía. No hay nada que animar.");
+            Debug.LogWarning("La lista 'itemsToFade' está vacía. No hay nada que animar.", this);
         }
     }
 
     IEnumerator FadeInSequenceCoroutine()
     {
-        // Continuar mientras haya elementos en la lista por procesar
-        while (currentItemIndex < textItems.Count)
+        while (currentItemIndex < itemsToFade.Count)
         {
-            FadeTextItem currentItem = textItems[currentItemIndex];
+            FadeItem currentItem = itemsToFade[currentItemIndex];
 
-            if (currentItem.textElement == null)
+            if (currentItem.elementCanvasGroup == null)
             {
-                Debug.LogWarning($"Elemento en el índice {currentItemIndex} no tiene TextMeshProUGUI asignado. Saltando.");
-                currentItemIndex++; // Avanzar al siguiente elemento
-                continue; // Saltar a la siguiente iteración del bucle while
+                Debug.LogWarning($"Elemento en el índice {currentItemIndex} no tiene CanvasGroup asignado. Saltando.", this);
+                currentItemIndex++;
+                continue;
             }
 
-            // Esperar el retraso configurado para este elemento
-            // Para el primer elemento (index 0), este es el retraso inicial.
-            // Para los siguientes, es el retraso después de que el anterior terminó.
+            // Si el GameObject del CanvasGroup está inactivo, el fade no será visible.
+            // Considera si necesitas activarlos aquí. Por ahora, se activará con una advertencia.
+            if (!currentItem.elementCanvasGroup.gameObject.activeInHierarchy)
+            {
+                Debug.LogWarning($"El GameObject del CanvasGroup '{currentItem.elementCanvasGroup.name}' está inactivo. Se intentará activar para el fade.", this);
+                currentItem.elementCanvasGroup.gameObject.SetActive(true);
+            }
+
+            // Esperar el retraso configurado.
             if (currentItem.delayAfterPreviousEnds > 0)
             {
                 yield return new WaitForSeconds(currentItem.delayAfterPreviousEnds);
             }
 
-            // Iniciar el fade para el elemento actual
-            yield return StartCoroutine(FadeElementCoroutine(currentItem.textElement, currentItem.fadeDuration));
+            // Iniciar el fade para el elemento actual usando DOTween y esperar a que termine.
+            if (currentItem.fadeDuration > 0f)
+            {
+                // DOFade anima el CanvasGroup.alpha. WaitForCompletion() pausa la corutina hasta que el tween termine.
+                yield return currentItem.elementCanvasGroup.DOFade(1f, currentItem.fadeDuration)
+                                     .SetEase(Ease.Linear) // Puedes cambiar el tipo de Ease según necesites
+                                     .WaitForCompletion();
+            }
+            else // Si la duración es 0, hacerlo visible instantáneamente.
+            {
+                currentItem.elementCanvasGroup.alpha = 1f;
+            }
 
-            // Avanzar al siguiente elemento
+            // Una vez que el fade-in está completo, hacerlo interactuable.
+            currentItem.elementCanvasGroup.interactable = true;
+            currentItem.elementCanvasGroup.blocksRaycasts = true; // Permitir que reciba eventos de ratón
+
             currentItemIndex++;
         }
 
-        // Opcional: Aquí puedes poner código que se ejecute cuando toda la secuencia haya terminado
-        Debug.Log("Toda la secuencia de fade-in completada!");
-    }
-
-    IEnumerator FadeElementCoroutine(TMP_Text textToFade, float duration) // Para TextMeshPro
-    // IEnumerator FadeElementCoroutine(Text textToFade, float duration) // Para UI.Text antiguo (cambiar TMP_Text por Text)
-    {
-        if (textToFade == null) yield break; // Seguridad adicional
-
-        if (duration <= 0f) // Si la duración es 0 o negativa, hacerlo visible instantáneamente
-        {
-            Color finalColorImmediate = textToFade.color;
-            textToFade.color = new Color(finalColorImmediate.r, finalColorImmediate.g, finalColorImmediate.b, 1f);
-            yield break; // Salir de esta corutina
-        }
-
-        float elapsedTime = 0f;
-        // El color original ya tiene alfa 0 debido a la inicialización en Start()
-        Color baseColor = textToFade.color;
-
-        while (elapsedTime < duration)
-        {
-            elapsedTime += Time.deltaTime;
-            float newAlpha = Mathf.Clamp01(elapsedTime / duration); // Calcula el alfa basado en el tiempo transcurrido
-
-            textToFade.color = new Color(baseColor.r, baseColor.g, baseColor.b, newAlpha);
-
-            yield return null; // Esperar al siguiente frame
-        }
-
-        // Asegurarse de que el alfa sea exactamente 1 al final
-        textToFade.color = new Color(baseColor.r, baseColor.g, baseColor.b, 1f);
+        Debug.Log("Toda la secuencia de fade-in completada!", this);
     }
 }
