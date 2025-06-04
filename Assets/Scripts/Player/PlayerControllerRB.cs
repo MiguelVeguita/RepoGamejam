@@ -61,7 +61,7 @@ public class PlayerControllerAlt : MonoBehaviour
 
     public static event Action OnLose;
 
-
+    float timeRunning = 0f;
 
 
     public static event Action<int> OnGrabSound;
@@ -138,8 +138,13 @@ public class PlayerControllerAlt : MonoBehaviour
     }
     public void OnGrabAction(InputAction.CallbackContext context)
     {
+       
         if (context.performed)
         {
+            timeRunning += Time.deltaTime;
+
+            //double duration = context.time - context.startTime;
+           
             OnGrabSound.Invoke(0);
             grabbed = !grabbed;
             if (grabbed == true)
@@ -153,10 +158,22 @@ public class PlayerControllerAlt : MonoBehaviour
                 OnThrow?.Invoke();
 
             }
-            Debug.Log("funcionaxd");
+           // Debug.Log("funcionaxd");
         }
+        if (context.started)
+        {
+            // Guardamos el momento en que se empezó a presionar
+            keyPressStartTime = context.time;
+        }
+        else if (context.canceled)
+        {
+            // Al soltar, calculamos duración
+            double duration = context.time - keyPressStartTime;
+            Debug.Log("Tecla presionada por: " + duration + " segundos");
+        }
+      //  Debug.Log("pressed for " + duration + "seconds");
     }
-
+    private double keyPressStartTime;
     void Update()
     {
         if (dashCooldownTimer > 0f)
