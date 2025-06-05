@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Collections; // Necesario para las Coroutines
+using System.Collections;
 
 public class ChangeScene : MonoBehaviour
 {
@@ -8,7 +8,11 @@ public class ChangeScene : MonoBehaviour
 
     [Header("Control de Escena y Efectos")]
     [Tooltip("Arrastra aquí el GameObject que tiene el script PostProcessController.")]
-    [SerializeField] private PostProcessController postProcessController; // Referencia al controlador de post-procesado
+    [SerializeField] private PostProcessController postProcessController;
+
+    [Header("Managers Visuales")] // Nuevo Header
+    [Tooltip("Arrastra aquí el GameObject que tiene el script MenuVisualEffectsManager.")]
+    [SerializeField] private MenuVisualEffectsManager menuVisualEffectsManager; // Referencia al manager de efectos
 
     void Start()
     {
@@ -21,8 +25,15 @@ public class ChangeScene : MonoBehaviour
         {
             postProcessController.SetVignetteActive(false);
         }
+
+        // Asegurarse que los efectos de menú estén activos al inicio si deben estarlo
+        if (menuVisualEffectsManager != null)
+        {
+            menuVisualEffectsManager.ActivateFallingObjects();
+        }
     }
 
+    // ... (LoadScene, LoadAsync, LoaderSceneAsync y sus corutinas se mantienen igual que antes) ...
     public void LoadScene(string nameScene)
     {
         if (postProcessController != null)
@@ -47,17 +58,13 @@ public class ChangeScene : MonoBehaviour
 
     private IEnumerator DoLoadAsyncWithVignetteControl(string nameScene)
     {
-        // Opcional: Descomenta la siguiente línea si quieres asegurar que el vignette
-        // sea visible por al menos un frame.
         // yield return null; 
-        // yield return new WaitForEndOfFrame();
-
         if (postProcessController != null)
         {
             postProcessController.SetVignetteActive(false);
         }
         SceneGlobalManager.Instance.LoadSceneAsync(nameScene);
-        yield break; // <--- AÑADIDO: Indica que la corutina ha terminado.
+        yield break;
     }
 
     public void LoaderSceneAsync(string targetSceneName)
@@ -75,26 +82,43 @@ public class ChangeScene : MonoBehaviour
 
     private IEnumerator DoLoaderSceneAsyncWithVignetteControl(string targetSceneName)
     {
-        // Opcional: yield return null;
-
+        // yield return null;
         if (postProcessController != null)
         {
             postProcessController.SetVignetteActive(false);
         }
         SceneGlobalManager.Instance.LoaderScene(targetSceneName);
-        yield break; // <--- AÑADIDO: Indica que la corutina ha terminado.
+        yield break;
     }
 
     public void IniciarCine()
     {
         panelCine.SetActive(true);
         MenuPrincipal.SetActive(false);
+        if (postProcessController != null)
+        {
+            postProcessController.SetVignetteActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("PostProcessController no asignado en ChangeScene. No se controlará el Vignette.");
+        }
+        // Detener los efectos de caída de objetos
+        if (menuVisualEffectsManager != null)
+        {
+            menuVisualEffectsManager.DeactivateFallingObjects(true); // true para limpiar objetos activos
+        }
     }
 
     public void IniciarControles()
     {
         controles.SetActive(true);
         MenuPrincipal.SetActive(false);
+        // Quizás también quieras detener los efectos aquí si la pantalla de controles es "limpia"
+        // if (menuVisualEffectsManager != null)
+        // {
+        //     menuVisualEffectsManager.DeactivateFallingObjects(true);
+        // }
     }
 
     public void IrMenuinicio()
@@ -106,12 +130,23 @@ public class ChangeScene : MonoBehaviour
         {
             panelCine.SetActive(false);
         }
+
+        // Reactivar los efectos de caída de objetos al volver al menú principal
+        if (menuVisualEffectsManager != null)
+        {
+            menuVisualEffectsManager.ActivateFallingObjects();
+        }
     }
 
     public void IrOpciones()
     {
         opciones.SetActive(true);
         MenuPrincipal.SetActive(false);
+        // Quizás también quieras detener los efectos aquí
+        // if (menuVisualEffectsManager != null)
+        // {
+        //     menuVisualEffectsManager.DeactivateFallingObjects(true);
+        // }
     }
 
     public void Exit()

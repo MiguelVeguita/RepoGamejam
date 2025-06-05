@@ -9,64 +9,73 @@ public class MenuVisualEffectsManager : MonoBehaviour
     public List<StaticObjectPooling<FallingMenuObject>> objectPools;
 
     [Header("Configuración de Aparición")]
-    [Tooltip("Tiempo mínimo entre la aparición de nuevos objetos.")]
     public float minSpawnInterval = 0.5f;
-    [Tooltip("Tiempo máximo entre la aparición de nuevos objetos.")]
     public float maxSpawnInterval = 2.0f;
-    [Tooltip("Velocidad de caída base para los objetos (puede ser sobreescrita por el FallingMenuObject).")]
-    public float baseFallSpeed = 2f; // Ajusta esta velocidad para el espacio 3D
+    public float baseFallSpeed = 2f;
 
     [Header("Límites de Aparición y Desaparición (Espacio del Mundo)")]
-    [Tooltip("Posición Y en el mundo donde aparecerán los objetos (ej. encima de la vista de cámara).")]
     public float spawnYPosition = 10f;
-    [Tooltip("Ancho del área de aparición en el eje X (centrado en X=0).")]
     public float spawnAreaWidth = 20f;
-    [Tooltip("Profundidad del área de aparición en el eje Z (si es relevante, centrado en Z=0).")]
-    public float spawnAreaDepth = 10f; // Puedes poner 0 si es un efecto 2.5D
-    [Tooltip("Posición Y en el mundo donde los objetos se consideran 'fuera de pantalla' y se devuelven al pool (ej. debajo de la vista de cámara).")]
+    public float spawnAreaDepth = 10f;
     public float despawnYPosition = -10f;
 
     [Tooltip("Opcional: Si los objetos deben ser hijos de este Transform para organizar la jerarquía.")]
     public Transform spawnedObjectsParent;
 
+    private Coroutine _spawnCoroutine;
+    private bool _isSpawningActive = true; // Controla si el efecto está activo
 
     void Start()
     {
-        // --- Validaciones Iniciales ---
-        if (objectPools == null || objectPools.Count == 0)
+        if (!ValidatePools())
         {
-            Debug.LogError("MenuVisualEffectsManager: No se han asignado pools de objetos (objectPools). Asigna la lista en el Inspector.", this);
             enabled = false;
             return;
+        }
+
+        if (spawnedObjectsParent == null)
+        {
+            Debug.LogWarning("MenuVisualEffectsManager: 'Spawned Objects Parent' no asignado. Los objetos serán hijos del GameObject del Pool respectivo o de este manager si el pool lo permite.", this);
+        }
+
+        if (_isSpawningActive)
+        {
+            _spawnCoroutine = StartCoroutine(SpawnObjectsRoutine());
+        }
+    }
+
+    bool ValidatePools()
+    {
+        if (objectPools == null || objectPools.Count == 0)
+        {
+            Debug.LogError("MenuVisualEffectsManager: No se han asignado pools de objetos (objectPools).", this);
+            return false;
         }
         for (int i = 0; i < objectPools.Count; i++)
         {
             if (objectPools[i] == null)
             {
-                Debug.LogError($"MenuVisualEffectsManager: El pool de objetos en el índice {i} de la lista 'objectPools' es nulo. Asigna un pool válido.", this);
-                enabled = false;
-                return;
+                Debug.LogError($"MenuVisualEffectsManager: El pool de objetos en el índice {i} es nulo.", this);
+                return false;
             }
         }
-
-        if (spawnedObjectsParent == null)
-        {
-            // Si no se asigna un padre, se puede usar el transform de este mismo GameObject
-            // o instanciarlos en la raíz de la escena (lo cual no es ideal para organización).
-            // Para este ejemplo, si no hay padre asignado, los objetos se instancian en la raíz
-            // pero el pool los hace hijos de su propio transform.
-            Debug.LogWarning("MenuVisualEffectsManager: 'Spawned Objects Parent' no asignado. Los objetos serán hijos del GameObject del Pool respectivo.", this);
-        }
-
-        StartCoroutine(SpawnObjectsRoutine());
+        return true;
     }
 
     IEnumerator SpawnObjectsRoutine()
     {
+        // Esta corutina ahora se detendrá si _isSpawningActive es false,
+        // porque la corutina entera será detenida por StopCoroutine.
+        // El while(true) está bien aquí.
         while (true)
         {
             float waitTime = Random.Range(minSpawnInterval, maxSpawnInterval);
             yield return new WaitForSeconds(waitTime);
+
+            // Doble chequeo por si la corutina no se detuvo a tiempo externamente
+            // O si se quiere un control más granular dentro del loop (aunque detener la corutina es más limpio).
+            if (!_isSpawningActive) yield break;
+
             SpawnSingleObject();
         }
     }
@@ -80,7 +89,7 @@ public class MenuVisualEffectsManager : MonoBehaviour
 
         if (selectedPool == null)
         {
-            Debug.LogWarning("MenuVisualEffectsManager: El pool seleccionado para instanciar es nulo. Saltando este spawn.");
+            Debug.LogWarning("MenuVisualEffectsManager: El pool seleccionado es nulo.", this);
             return;
         }
 
@@ -88,41 +97,44 @@ public class MenuVisualEffectsManager : MonoBehaviour
 
         if (spawnedObject != null)
         {
-            // Configurar el objeto 3D
             float spawnX = Random.Range(-spawnAreaWidth / 2f, spawnAreaWidth / 2f);
             float spawnZ = Random.Range(-spawnAreaDepth / 2f, spawnAreaDepth / 2f);
-
             spawnedObject.transform.position = new Vector3(spawnX, spawnYPosition, spawnZ);
-            // La rotación inicial podría ser la del prefab o una aleatoria
             spawnedObject.transform.rotation = Quaternion.Euler(Random.Range(0f, 360f), Random.Range(0f, 360f), Random.Range(0f, 360f));
 
-
-            // Asignar padre si está especificado
             if (spawnedObjectsParent != null)
             {
-                spawnedObject.transform.SetParent(spawnedObjectsParent, true); // true para mantener la posición del mundo
+                spawnedObject.transform.SetParent(spawnedObjectsParent, true);
             }
-            // Nota: El script StaticObjectPooling ya hace que el objeto sea hijo del transform del pool.
-            // Si quieres un padre diferente, asegúrate de que esta lógica no entre en conflicto.
-            // Lo más simple es que el pool los instancie como hijos suyos, y luego aquí los re-emparentes si es necesario,
-            // o que modifiques el pool para que acepte un padre al instanciar.
-            // Por ahora, el pool los hará hijos suyos. Si `spawnedObjectsParent` está asignado,
-            // se re-emparentarán aquí después de ser activados por el pool.
+            // Si no hay spawnedObjectsParent, el objeto permanecerá como hijo del pool (comportamiento típico del pool).
 
             spawnedObject.fallSpeed = baseFallSpeed;
-            spawnedObject.SetupWorldBoundary(despawnYPosition);
+            spawnedObject.SetupWorldBoundary(despawnYPosition); // Asegúrate que FallingMenuObject tenga este método
         }
     }
 
     void Update()
     {
+        // Solo procesar el despawn si el efecto está activo, para evitar errores si los objetos se limpian de otra forma.
+        if (!_isSpawningActive) return;
+
         for (int i = 0; i < objectPools.Count; i++)
         {
             StaticObjectPooling<FallingMenuObject> currentPool = objectPools[i];
             if (currentPool == null) continue;
 
+            // IMPORTANTE: La lógica para encontrar objetos a despawnear necesita ser consistente
+            // con cómo se manejan los padres de los objetos (spawnedObjectsParent vs hijos del pool).
+            // El código original itera sobre currentPool.transform.childCount.
+            // Esto asume que los objetos activos (o al menos los que este Update debe revisar)
+            // son hijos del transform del pool. Si `spawnedObjectsParent` se usa y los objetos
+            // se mueven allí, este Update no los encontraría.
+            // Para este ejemplo, mantendré la lógica original del Update,
+            // pero esto podría necesitar ajuste basado en cómo funciona tu `StaticObjectPooling`
+            // y el emparentamiento.
+
             int childCount = currentPool.transform.childCount;
-            for (int j = 0; j < childCount; j++)
+            for (int j = childCount - 1; j >= 0; j--) // Iterar hacia atrás es más seguro si se eliminan elementos
             {
                 Transform childTransform = currentPool.transform.GetChild(j);
                 if (childTransform.gameObject.activeInHierarchy)
@@ -130,7 +142,6 @@ public class MenuVisualEffectsManager : MonoBehaviour
                     FallingMenuObject fmo = childTransform.GetComponent<FallingMenuObject>();
                     if (fmo != null)
                     {
-                        // Comprobar si el objeto 3D ha caído por debajo del límite de desaparición
                         if (fmo.transform.position.y < despawnYPosition)
                         {
                             currentPool.ReturnObject(fmo);
@@ -138,6 +149,101 @@ public class MenuVisualEffectsManager : MonoBehaviour
                     }
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Activa el efecto de caída de objetos.
+    /// </summary>
+    public void ActivateFallingObjects()
+    {
+        if (!_isSpawningActive)
+        {
+            _isSpawningActive = true;
+            // Validar que el componente y el GameObject estén activos antes de iniciar la corutina
+            if (this.gameObject.activeInHierarchy && this.enabled)
+            {
+                _spawnCoroutine = StartCoroutine(SpawnObjectsRoutine());
+                Debug.Log("Efecto de caída de objetos ACTIVADO.");
+            }
+            else
+            {
+                Debug.LogWarning("MenuVisualEffectsManager está inactivo, no se pueden activar los efectos de caída.", this);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Desactiva el efecto de caída de objetos.
+    /// </summary>
+    /// <param name="returnActiveObjectsToPool">Si es true, todos los objetos activos visibles serán devueltos al pool.</param>
+    public void DeactivateFallingObjects(bool returnActiveObjectsToPool = true)
+    {
+        if (_isSpawningActive)
+        {
+            _isSpawningActive = false;
+            if (_spawnCoroutine != null)
+            {
+                StopCoroutine(_spawnCoroutine);
+                _spawnCoroutine = null;
+            }
+            Debug.Log("Efecto de caída de objetos DESACTIVADO.");
+
+            if (returnActiveObjectsToPool)
+            {
+                ReturnAllActiveObjectsToPool();
+            }
+        }
+    }
+
+    private void ReturnAllActiveObjectsToPool()
+    {
+        Debug.Log("Devolviendo objetos activos al pool...");
+        // Esta función asume que los objetos activos son hijos de `spawnedObjectsParent` si está asignado,
+        // o que necesitan ser encontrados de alguna manera si no (por ejemplo, iterando hijos de los pools,
+        // lo cual es complejo si se re-emparentan).
+        // La forma más simple y consistente con tu `Update` es iterar los hijos de cada pool.
+        // Esto asume que `ReturnObject` en tu pool puede manejar un objeto sin importar su padre actual,
+        // o que los objetos activos son de hecho hijos del transform del pool.
+
+        for (int i = 0; i < objectPools.Count; i++)
+        {
+            StaticObjectPooling<FallingMenuObject> currentPool = objectPools[i];
+            if (currentPool == null || currentPool.transform == null) continue;
+
+            List<FallingMenuObject> objectsToReturnFromThisPool = new List<FallingMenuObject>();
+            // Iterar sobre los hijos del transform del pool.
+            // Esto es consistente con tu bucle Update para despawn.
+            for (int j = 0; j < currentPool.transform.childCount; j++)
+            {
+                Transform childTransform = currentPool.transform.GetChild(j);
+                // Es crucial que GetObject() del pool active el GameObject y ReturnObject() lo desactive.
+                if (childTransform.gameObject.activeInHierarchy)
+                {
+                    FallingMenuObject fmo = childTransform.GetComponent<FallingMenuObject>();
+                    if (fmo != null) // Asegurarse de que es uno de nuestros objetos
+                    {
+                        objectsToReturnFromThisPool.Add(fmo);
+                    }
+                }
+            }
+            // Devolver los objetos recolectados para este pool
+            foreach (FallingMenuObject fmo in objectsToReturnFromThisPool)
+            {
+                currentPool.ReturnObject(fmo); // El pool se encarga de desactivarlo y manejarlo.
+            }
+        }
+    }
+
+    // Es una buena práctica detener las corutinas si el objeto se desactiva o destruye
+    void OnDisable()
+    {
+        // No necesariamente queremos cambiar _isSpawningActive aquí, solo detener la corutina
+        // para que no siga corriendo si el objeto se desactiva.
+        if (_spawnCoroutine != null)
+        {
+            StopCoroutine(_spawnCoroutine);
+            _spawnCoroutine = null;
         }
     }
 }

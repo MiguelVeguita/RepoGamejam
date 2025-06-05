@@ -19,5 +19,5 @@ MonoBehaviour:
   sfxClip:
   - {fileID: 8300000, guid: 633491cad16447642ac3d1b2414a8dc9, type: 3}
   - {fileID: 8300000, guid: 3fe33d856f12589478d2e6280e0f966e, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 8300000, guid: 373301dec94465e4895ae809f2489161, type: 3}
+  - {fileID: 8300000, guid: e30e6510a47138d42ae26efd52f3fe28, type: 3}

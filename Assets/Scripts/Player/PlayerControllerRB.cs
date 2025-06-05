@@ -1,29 +1,23 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
-using System; 
+using System;
 
 public class PlayerControllerAlt : MonoBehaviour
 {
     [Header("Referencias")]
     [SerializeField] private Transform cameraTransform;
-    [SerializeField] private Animator animator; // << AÑADIDO: Referencia al Animator
-
-
+    [SerializeField] private Animator animator;
+    [SerializeField] private GrabObjects grabber; // << AÑADIDO: Referencia a GrabObjects
 
     [Header("Movimiento")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float jumpForce = 7f;
-
-    [Header("Mirada (Mouse)")]
-    [SerializeField] private float mouseSensitivity = 100f;
-    [SerializeField] private float maxLookUpAngle = 80f;
-    [SerializeField] private float minLookDownAngle = -80f;
+    [SerializeField] private float rotationSpeed = 720f;
 
     [Header("Chequeo de Suelo")]
     [SerializeField] private Transform groundCheck;
-    
-    [SerializeField] private float groundCheckDistance = 0.3f; 
+    [SerializeField] private float groundCheckDistance = 0.3f;
     [SerializeField] private LayerMask groundLayer;
 
     [Header("Dash")]
@@ -32,68 +26,50 @@ public class PlayerControllerAlt : MonoBehaviour
     [SerializeField] private float dashCooldown = 1f;
 
     [Header("Deslizamiento en Pendientes")]
-    [SerializeField] private float minSlopeAngleToSlide = 30f; 
-    [SerializeField] private float slideAcceleration = 8f;   
+    [SerializeField] private float minSlopeAngleToSlide = 30f;
+    [SerializeField] private float slideAcceleration = 8f;
 
     private Rigidbody rb;
     private Vector2 moveInput;
-    private Vector2 lookInput;
     private bool isGrounded;
-    private float xRotation = 0f;
     private bool isDashing = false;
     private float dashCooldownTimer = 0f;
 
-   
-    private Vector3 groundNormal; 
-    private bool isSliding = false;  
+    private Vector3 groundNormal;
+    private bool isSliding = false;
+    private Vector3 currentMoveDirection = Vector3.forward;
 
-    public static Action OnGrab;
-    public static Action OnThrow;
+    // Eventos y delegados existentes
+    public static Action OnGrab; // Invocado por GrabObjects cuando se agarra un objeto
+    public static Action OnThrow; // Invocado por GrabObjects cuando se lanza/suelta un objeto
     public delegate void GrabFunc();
     private GrabFunc grabFunc;
-    public bool isPressed = false;
-    bool grabbed = false;
-    bool ongrab = false;
+    public bool isPressed = false; // Esta variable parece no usarse consistentemente con OnGrab/OnThrow, revisar su propósito.
+    // bool grabbed = false; // El estado de 'grabbed' ahora lo manejará principalmente GrabObjects.
+    // bool ongrab = false;
     public GameObject object_ref2;
     public static Func<GameObject> objectState;
 
     private int moveSpeedAnimHash;
 
     public static event Action OnLose;
-
-
-
-
     public static event Action<int> OnGrabSound;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
         groundNormal = Vector3.up;
 
-        // --- LÓGICA DE ANIMACIÓN INTEGRADA ---
-        if (animator == null)
-        {
-            animator = GetComponent<Animator>();
-        }
-        if (animator == null)
-        {
-            animator = GetComponentInChildren<Animator>();
-        }
-        if (animator == null)
-        {
-            Debug.LogError("Animator no encontrado en el Player o sus hijos. Asegúrate de asignarlo.");
-        }
-        else
-        {
-            // Asegúrate de que "MovementSpeed" coincida con el parámetro en tu Animator Controller.
-            moveSpeedAnimHash = Animator.StringToHash("MovementSpeed");
-        }
+        if (animator == null) animator = GetComponent<Animator>();
+        if (animator == null) animator = GetComponentInChildren<Animator>();
+        if (animator == null) Debug.LogError("Animator no encontrado en el Player o sus hijos.");
+        else moveSpeedAnimHash = Animator.StringToHash("MovementSpeed");
 
-
+        // Asegúrate de que 'grabber' esté asignado en el Inspector
+        if (grabber == null)
+        {
+            Debug.LogError("Referencia a GrabObjects no asignada en PlayerControllerAlt.");
+        }
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -103,17 +79,15 @@ public class PlayerControllerAlt : MonoBehaviour
 
     public void OnLook(InputAction.CallbackContext context)
     {
-        lookInput = context.ReadValue<Vector2>();
+        // Lógica de Look si es necesaria para la cámara top-down o no se usa
     }
 
     public void OnJump(InputAction.CallbackContext context)
     {
-
         if (context.performed && isGrounded && !isDashing && !isSliding)
         {
             HandleJump();
         }
-
     }
 
     public void OnDash(InputAction.CallbackContext context)
@@ -123,37 +97,50 @@ public class PlayerControllerAlt : MonoBehaviour
             StartCoroutine(PerformDash());
         }
     }
+
+    // Este método se llama con la tecla 'E'
+    public void OnGrabDropInput(InputAction.CallbackContext context) // Renombrado de OnGrabAction
+    {
+        if (context.performed && grabber != null)
+        {
+            OnGrabSound?.Invoke(0); // Suponiendo que el índice 0 es el sonido de agarrar/soltar
+            grabber.ProcessGrabDropKey();
+        }
+    }
+
+    // << NUEVO: Método para la acción de Apuntar (Clic Derecho) >>
+    public void OnAimInput(InputAction.CallbackContext context)
+    {
+        if (grabber == null) return;
+
+        if (context.started) // Botón presionado
+        {
+            grabber.StartAiming();
+        }
+        else if (context.canceled) // Botón soltado
+        {
+            grabber.StopAiming();
+        }
+    }
+
+    // << NUEVO: Método para la acción de Lanzar (Clic Izquierdo) >>
+    public void OnThrowInput(InputAction.CallbackContext context)
+    {
+        if (context.performed && grabber != null)
+        {
+            grabber.ProcessThrowKey();
+        }
+    }
+
+
     private void OnCollisionEnter(Collision collision)
     {
-        if(collision.gameObject.tag == "lose")
+        if (collision.gameObject.tag == "lose")
         {
             Debug.Log("perderXD");
             Cursor.lockState = CursorLockMode.Confined;
             Cursor.visible = true;
             OnLose?.Invoke();
-            
-            
-
-        }
-    }
-    public void OnGrabAction(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            OnGrabSound.Invoke(0);
-            grabbed = !grabbed;
-            if (grabbed == true)
-            {
-                OnGrab?.Invoke();
-                 
-
-            }
-            else
-            {
-                OnThrow?.Invoke();
-
-            }
-            Debug.Log("funcionaxd");
         }
     }
 
@@ -163,68 +150,51 @@ public class PlayerControllerAlt : MonoBehaviour
         {
             dashCooldownTimer -= Time.deltaTime;
         }
+
+        // Si GrabObjects necesita actualizar el apuntado continuamente mientras se mantiene presionado RMB:
+        if (grabber != null && grabber.IsAimingActive())
+        {
+            grabber.UpdateAimCharge(Time.deltaTime); // Pasa el tiempo para el incremento
+        }
     }
 
     void FixedUpdate()
     {
-       
         CheckGroundAndUpdateSlidingState();
 
         if (isSliding)
         {
             HandleSliding();
         }
-      
-        if (!isDashing && !isSliding)
+        else if (!isDashing)
         {
-            HandleMovement();
+            HandleMovementAndRotation();
         }
-
     }
 
- 
-    public bool Getpressed()
-    {
-        return isPressed;
-    }
-
-    void LateUpdate()
-    {
-        HandleLook();
-    }
+    public bool Getpressed() => isPressed;
 
     private IEnumerator PerformDash()
     {
         isDashing = true;
         dashCooldownTimer = dashCooldown;
-        Vector3 dashDirection = transform.forward;
-      
+        Vector3 dashDirection = (currentMoveDirection != Vector3.zero && moveInput.sqrMagnitude > 0.1f) ? currentMoveDirection : transform.forward;
+        if (dashDirection == Vector3.zero) dashDirection = transform.forward;
         rb.AddForce(dashDirection * dashForce, ForceMode.VelocityChange);
         yield return new WaitForSeconds(dashDuration);
         isDashing = false;
     }
 
-  
     private void CheckGroundAndUpdateSlidingState()
     {
         RaycastHit hit;
-      
         Vector3 rayOrigin = groundCheck.position + Vector3.up * 0.05f;
-
         if (Physics.Raycast(rayOrigin, Vector3.down, out hit, groundCheckDistance + 0.05f, groundLayer))
         {
             isGrounded = true;
             groundNormal = hit.normal;
-
             float slopeAngle = Vector3.Angle(Vector3.up, groundNormal);
-            if (slopeAngle > minSlopeAngleToSlide)
-            {
-                isSliding = true;
-            }
-            else
-            {
-                isSliding = false;
-            }
+            isSliding = slopeAngle > minSlopeAngleToSlide;
         }
         else
         {
@@ -233,52 +203,31 @@ public class PlayerControllerAlt : MonoBehaviour
             groundNormal = Vector3.up;
         }
     }
- 
 
-    private void HandleMovement()
+    private void HandleMovementAndRotation()
     {
-        Vector3 moveDirection = transform.forward * moveInput.y + transform.right * moveInput.x;
-        moveDirection.Normalize();
-
-        Vector3 targetVelocity = moveDirection * moveSpeed;
-        targetVelocity.y = rb.linearVelocity.y;
-        rb.linearVelocity = targetVelocity;
+        Vector3 worldMoveInput = new Vector3(moveInput.x, 0f, moveInput.y).normalized;
+        if (worldMoveInput != Vector3.zero)
+        {
+            currentMoveDirection = worldMoveInput;
+            Quaternion targetRotation = Quaternion.LookRotation(currentMoveDirection, Vector3.up);
+            rb.rotation = Quaternion.RotateTowards(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+        }
+        Vector3 targetVelocity = worldMoveInput * moveSpeed;
+        rb.linearVelocity = new Vector3(targetVelocity.x, rb.linearVelocity.y, targetVelocity.z);
         if (animator != null)
         {
-            // Usamos la magnitud del vector de input para determinar la "velocidad" para la animación.
-            // Esto es consistente con PlayerControllerxd.
-            // Si el jugador está en el suelo y se mueve, moveInput.magnitude será > 0.
-            // Si está en el aire y se mueve, también. Si está quieto, será 0.
-            float animationSpeed = Mathf.Clamp01(moveInput.magnitude);
+            float animationSpeed = Mathf.Clamp01(worldMoveInput.magnitude);
             animator.SetFloat(moveSpeedAnimHash, animationSpeed);
         }
-
     }
-
 
     private void HandleSliding()
     {
-
         Vector3 slideDirection = Vector3.ProjectOnPlane(Vector3.down, groundNormal).normalized;
-
         float currentSlopeAngle = Vector3.Angle(Vector3.up, groundNormal);
-        float slideRatio = (currentSlopeAngle - minSlopeAngleToSlide) / (90f - minSlopeAngleToSlide);
-        slideRatio = Mathf.Clamp01(slideRatio); 
+        float slideRatio = Mathf.Clamp01((currentSlopeAngle - minSlopeAngleToSlide) / (90f - minSlopeAngleToSlide));
         rb.AddForce(slideDirection * slideAcceleration * slideRatio, ForceMode.Acceleration);
-    }
-
-
-    private void HandleLook()
-    {
-        float mouseX = lookInput.x * mouseSensitivity * Time.deltaTime;
-        float mouseY = lookInput.y * mouseSensitivity * Time.deltaTime;
-
-        transform.Rotate(Vector3.up * mouseX);
-
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, minLookDownAngle, maxLookUpAngle);
-
-        cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
     }
 
     private void HandleJump()
@@ -291,7 +240,7 @@ public class PlayerControllerAlt : MonoBehaviour
     {
         if (groundCheck != null)
         {
-            Gizmos.color = Color.green; 
+            Gizmos.color = Color.green;
             Vector3 rayGizmoOrigin = groundCheck.position + Vector3.up * 0.05f;
             Gizmos.DrawLine(rayGizmoOrigin, rayGizmoOrigin + Vector3.down * (groundCheckDistance + 0.05f));
             if (isGrounded)
