@@ -167,7 +167,7 @@ public class GrabObjects : MonoBehaviour
 
         heldObject = currentTargetObject;
         rb_heldObject = rb_currentTargetObject;
-        isHoldingObject = true; // <--- Importante actualizar estado
+        isHoldingObject = true;
 
         heldObject.transform.SetParent(point_ref.transform);
         heldObject.transform.localPosition = Vector3.zero;
@@ -176,6 +176,7 @@ public class GrabObjects : MonoBehaviour
 
         Debug.Log($"GrabObjects: Objeto agarrado - {heldObject.name}");
         PlayerControllerAlt.OnGrab?.Invoke();
+        PlayerControllerAlt.TriggerGrabSoundEvent(0); // <<-- MODIFICADO AQUÍ
 
         currentTargetObject = null;
         rb_currentTargetObject = null;
@@ -186,7 +187,7 @@ public class GrabObjects : MonoBehaviour
         if (!isHoldingObject || heldObject == null) return;
 
         Debug.Log($"GrabObjects: Lanzando objeto {heldObject.name} con carga {currentAimChargeNormalized}");
-        trajectoryLine.enabled = false; // Ocultar trayectoria al lanzar
+        trajectoryLine.enabled = false;
         isActivelyAiming = false;
 
         float launchAngle = Mathf.Lerp(minLaunchAngle, maxLaunchAngle, currentAimChargeNormalized);
@@ -197,12 +198,14 @@ public class GrabObjects : MonoBehaviour
         rb_heldObject.AddForce(launchVelocity, ForceMode.VelocityChange);
 
         PlayerControllerAlt.OnThrow?.Invoke();
+        PlayerControllerAlt.TriggerThrowSoundEvent(4); // <<-- MODIFICADO AQUÍ
 
         heldObject = null;
         rb_heldObject = null;
-        isHoldingObject = false; // <--- Importante actualizar estado
+        isHoldingObject = false;
         currentAimChargeNormalized = 0f;
     }
+
 
     private void ForceDrop()
     {
@@ -218,6 +221,8 @@ public class GrabObjects : MonoBehaviour
                 rb_heldObject.isKinematic = false;
             }
             PlayerControllerAlt.OnThrow?.Invoke(); // Sigue siendo un "throw" en términos de evento
+            // Considera si ForceDrop también debería tener un sonido. Podría ser el mismo OnThrowSound
+            // o uno nuevo específico para "drop". Por ahora, no se añade sonido aquí según el requerimiento.
         }
         heldObject = null;
         rb_heldObject = null;
@@ -244,13 +249,13 @@ public class GrabObjects : MonoBehaviour
         trajectoryLine.positionCount = trajectorySegments;
         Vector3 currentSimPos = point_ref.transform.position;
         Vector3 currentSimVel = launchVel;
-        float timeStep = 0.1f;
+        float timeStep = 0.1f; // Puedes ajustar este valor
 
         for (int i = 0; i < trajectorySegments; i++)
         {
             trajectoryLine.SetPosition(i, currentSimPos);
-            currentSimVel += Physics.gravity * timeStep;
-            currentSimPos += currentSimVel * timeStep;
+            currentSimVel += Physics.gravity * timeStep; // Aplicar gravedad
+            currentSimPos += currentSimVel * timeStep;   // Calcular siguiente posición
         }
     }
 }

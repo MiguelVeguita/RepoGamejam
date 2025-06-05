@@ -55,6 +55,20 @@ public class PlayerControllerAlt : MonoBehaviour
 
     public static event Action OnLose;
     public static event Action<int> OnGrabSound;
+    public static event Action<int> OnThrowSound;
+
+
+    // << NUEVOS MÉTODOS PÚBLICOS ESTÁTICOS PARA INVOCAR EVENTOS >>
+    public static void TriggerGrabSoundEvent(int soundId)
+    {
+        OnGrabSound?.Invoke(soundId);
+    }
+
+    public static void TriggerThrowSoundEvent(int soundId)
+    {
+        OnThrowSound?.Invoke(soundId);
+    }
+
 
     void Awake()
     {
@@ -113,7 +127,7 @@ public class PlayerControllerAlt : MonoBehaviour
     {
         if (context.performed && grabber != null)
         {
-            OnGrabSound?.Invoke(0);
+            // El sonido de agarre ahora se invoca desde GrabObjects.TryGrab()
             grabber.ProcessGrabDropKey();
         }
     }
@@ -134,7 +148,7 @@ public class PlayerControllerAlt : MonoBehaviour
     {
         if (context.performed && grabber != null)
         {
-            grabber.ProcessThrowKey();
+            grabber.ProcessThrowKey(); // El sonido de lanzamiento ahora se invoca desde GrabObjects.PerformThrow()
         }
     }
     private void OnCollisionEnter(Collision collision)
