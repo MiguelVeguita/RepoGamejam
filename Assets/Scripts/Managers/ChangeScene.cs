@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class ChangeScene : MonoBehaviour
 {
@@ -42,6 +43,10 @@ public class ChangeScene : MonoBehaviour
         }
         SceneGlobalManager.Instance.LoadScene(nameScene);
     }
+    public void JustChange(string name_xd)
+    {
+        SceneManager.LoadScene(name_xd);
+    } 
 
     public void LoadAsync(string nameScene)
     {

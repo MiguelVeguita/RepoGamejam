@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 1520619781123224119}
   - component: {fileID: 5568525321462722254}
   - component: {fileID: 814434370435756394}
-  - component: {fileID: 3752756939861355342}
   - component: {fileID: -3208814230851697052}
+  - component: {fileID: 814169139061807555}
   m_Layer: 0
   m_Name: Estrella
   m_TagString: star
@@ -88,27 +88,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &3752756939861355342
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2190710949091671100}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 1.0303177
-  m_Center: {x: -0.000000059604645, y: -0.00000011920932, z: 0.111046545}
 --- !u!54 &-3208814230851697052
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -136,3 +115,26 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!136 &814169139061807555
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2190710949091671100}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.2708414
+  m_Height: 2.0606353
+  m_Direction: 1
+  m_Center: {x: -0.000000059604645, y: -0.00000011920929, z: 0.107723266}

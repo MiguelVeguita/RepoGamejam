@@ -1,19 +1,22 @@
+// GrabObjects.cs
+
 using UnityEngine;
-using System; // Para Action
+using System;
 
 public class GrabObjects : MonoBehaviour
 {
+    // ... (tus variables existentes: point_ref, grabbableTags, mecánicas de lanzamiento, etc.) ...
     [Header("Setup")]
-    [SerializeField] GameObject point_ref; // Punto desde donde se calcula la trayectoria y se lanza
+    [SerializeField] GameObject point_ref;
     [SerializeField] string[] grabbableTags = { "star", "ship", "moon", "alien", "saturn" };
 
     [Header("Throwing Mechanics")]
-    [SerializeField] float baseLaunchSpeed = 15f; // Velocidad base del lanzamiento
-    [SerializeField] float minLaunchAngle = 10f;  // Ángulo mínimo de lanzamiento (hacia arriba desde la horizontal)
-    [SerializeField] float maxLaunchAngle = 75f;  // Ángulo máximo de lanzamiento
-    [SerializeField] float aimChargeRate = 1f;    // Qué tan rápido se carga el ángulo/altura (unidades normalizadas por segundo)
-    [SerializeField] int trajectorySegments = 30; // Número de puntos para el LineRenderer
-    [SerializeField] Material trajectoryMaterial; // Material para el LineRenderer (opcional, puedes crear uno simple)
+    [SerializeField] float baseLaunchSpeed = 15f;
+    [SerializeField] float minLaunchAngle = 10f;
+    [SerializeField] float maxLaunchAngle = 75f;
+    [SerializeField] float aimChargeRate = 1f;
+    [SerializeField] int trajectorySegments = 30;
+    [SerializeField] Material trajectoryMaterial;
     [SerializeField] float trajectoryLineWidth = 0.1f;
 
     private GameObject currentTargetObject;
@@ -21,16 +24,15 @@ public class GrabObjects : MonoBehaviour
 
     private GameObject heldObject;
     private Rigidbody rb_heldObject;
-    private bool isHoldingObject = false;
+    private bool isHoldingObject = false; // <<-- ESTA ES LA IMPORTANTE
 
-    // Nuevas variables para el apuntado
     private LineRenderer trajectoryLine;
-    private bool isActivelyAiming = false; // True mientras RMB está presionado
-    private float currentAimChargeNormalized = 0f; // Valor de 0 a 1 para la carga del ángulo
+    private bool isActivelyAiming = false; // True mientras RMB está presionado (para cargar y mostrar trayectoria)
+    private float currentAimChargeNormalized = 0f;
+
 
     void Awake()
     {
-        // Configurar el LineRenderer para la trayectoria
         trajectoryLine = gameObject.AddComponent<LineRenderer>();
         trajectoryLine.positionCount = trajectorySegments;
         trajectoryLine.startWidth = trajectoryLineWidth;
@@ -41,21 +43,15 @@ public class GrabObjects : MonoBehaviour
         }
         else
         {
-            // Crear un material simple por defecto si no se asigna uno
             var defaultMaterial = new Material(Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply"));
-            trajectoryLine.material = defaultMaterial; // O usa un shader Unlit/Color
-            trajectoryLine.startColor = Color.yellow; // Ejemplo
-            trajectoryLine.endColor = Color.red;     // Ejemplo
+            trajectoryLine.material = defaultMaterial;
+            trajectoryLine.startColor = Color.yellow;
+            trajectoryLine.endColor = Color.red;
         }
         trajectoryLine.enabled = false;
     }
 
-
-    // Ya no nos suscribimos a PlayerControllerAlt.OnGrab/OnThrow de esta manera,
-    // PlayerControllerAlt llamará a métodos públicos de esta clase directamente.
-    // void OnEnable() { ... }
-    // void OnDisable() { ... }
-
+    // ... OnTriggerEnter, OnTriggerExit ... (sin cambios respecto a tu última versión)
     private void OnTriggerEnter(Collider other)
     {
         if (isHoldingObject) return;
@@ -82,44 +78,56 @@ public class GrabObjects : MonoBehaviour
         }
     }
 
-    // Llamado por PlayerControllerAlt cuando se presiona 'E'
+
+    // << NUEVO MÉTODO PÚBLICO >>
+    /// <summary>
+    /// Devuelve true si el jugador está actualmente sosteniendo un objeto.
+    /// </summary>
+    public bool IsHoldingObject()
+    {
+        return isHoldingObject;
+    }
+
+    // Este método ya lo tenías para saber si RMB está presionado
+    public bool IsAimingActive()
+    {
+        return isActivelyAiming; // Esto es para la carga y visualización de la trayectoria
+    }
+
+
+    // ... ProcessGrabDropKey, StartAiming, StopAiming, UpdateAimCharge, ProcessThrowKey ...
+    // ... TryGrab, PerformThrow, ForceDrop, CalculateLaunchVelocity, DrawTrajectory ...
+    // (El resto de tus métodos en GrabObjects.cs de la versión anterior se mantienen igual)
     public void ProcessGrabDropKey()
     {
         if (isHoldingObject)
         {
-            ForceDrop(); // Si está sosteniendo, suelta el objeto
+            ForceDrop();
         }
         else
         {
-            TryGrab(); // Si no, intenta agarrar
+            TryGrab();
         }
     }
-
-    // Llamado por PlayerControllerAlt cuando se presiona RMB
     public void StartAiming()
     {
         if (isHoldingObject)
         {
             isActivelyAiming = true;
-            currentAimChargeNormalized = 0f; // Reiniciar carga al empezar a apuntar
+            currentAimChargeNormalized = 0f;
             trajectoryLine.enabled = true;
             Debug.Log("GrabObjects: Empezando a apuntar.");
         }
     }
-
-    // Llamado por PlayerControllerAlt cuando se suelta RMB
     public void StopAiming()
     {
         if (isHoldingObject && isActivelyAiming)
         {
             isActivelyAiming = false;
-            // La trayectoria se queda visible con la última carga hasta que se lance o se cancele.
-            // Si quieres que desaparezca al soltar RMB: trajectoryLine.enabled = false;
+            // No ocultar trayectoria aquí, se oculta al lanzar o dropear.
             Debug.Log($"GrabObjects: Dejó de apuntar activamente. Carga final: {currentAimChargeNormalized}");
         }
     }
-
-    // Llamado desde PlayerControllerAlt.Update si isActivelyAiming es true
     public void UpdateAimCharge(float deltaTime)
     {
         if (isHoldingObject && isActivelyAiming)
@@ -128,20 +136,10 @@ public class GrabObjects : MonoBehaviour
             DrawTrajectory();
         }
     }
-
-    public bool IsAimingActive()
-    {
-        return isActivelyAiming;
-    }
-
-    // Llamado por PlayerControllerAlt cuando se presiona LMB
     public void ProcessThrowKey()
     {
-        if (isHoldingObject) // Solo lanza si está sosteniendo algo
+        if (isHoldingObject)
         {
-            // No necesariamente necesita estar en "isActivelyAiming" para lanzar,
-            // podría lanzar con la última carga almacenada o una carga por defecto si no se apuntó.
-            // Por ahora, lanzará con la currentAimChargeNormalized (que será 0 si no se usó RMB).
             PerformThrow();
         }
         else
@@ -149,7 +147,6 @@ public class GrabObjects : MonoBehaviour
             Debug.Log("GrabObjects: Intento de lanzamiento (LMB), pero no se está sosteniendo nada.");
         }
     }
-
     private void TryGrab()
     {
         if (currentTargetObject == null)
@@ -170,7 +167,7 @@ public class GrabObjects : MonoBehaviour
 
         heldObject = currentTargetObject;
         rb_heldObject = rb_currentTargetObject;
-        isHoldingObject = true;
+        isHoldingObject = true; // <--- Importante actualizar estado
 
         heldObject.transform.SetParent(point_ref.transform);
         heldObject.transform.localPosition = Vector3.zero;
@@ -178,7 +175,7 @@ public class GrabObjects : MonoBehaviour
         rb_heldObject.isKinematic = true;
 
         Debug.Log($"GrabObjects: Objeto agarrado - {heldObject.name}");
-        PlayerControllerAlt.OnGrab?.Invoke(); // Notificar que se agarró un objeto
+        PlayerControllerAlt.OnGrab?.Invoke();
 
         currentTargetObject = null;
         rb_currentTargetObject = null;
@@ -189,22 +186,22 @@ public class GrabObjects : MonoBehaviour
         if (!isHoldingObject || heldObject == null) return;
 
         Debug.Log($"GrabObjects: Lanzando objeto {heldObject.name} con carga {currentAimChargeNormalized}");
-        trajectoryLine.enabled = false;
-        isActivelyAiming = false; // Ya no está apuntando activamente después de lanzar
+        trajectoryLine.enabled = false; // Ocultar trayectoria al lanzar
+        isActivelyAiming = false;
 
         float launchAngle = Mathf.Lerp(minLaunchAngle, maxLaunchAngle, currentAimChargeNormalized);
         Vector3 launchVelocity = CalculateLaunchVelocity(launchAngle, baseLaunchSpeed, point_ref.transform);
 
         heldObject.transform.SetParent(null);
         rb_heldObject.isKinematic = false;
-        rb_heldObject.AddForce(launchVelocity, ForceMode.VelocityChange); // VelocityChange es bueno para consistencia
+        rb_heldObject.AddForce(launchVelocity, ForceMode.VelocityChange);
 
-        PlayerControllerAlt.OnThrow?.Invoke(); // Notificar que se lanzó un objeto
+        PlayerControllerAlt.OnThrow?.Invoke();
 
         heldObject = null;
         rb_heldObject = null;
-        isHoldingObject = false;
-        currentAimChargeNormalized = 0f; // Resetear carga
+        isHoldingObject = false; // <--- Importante actualizar estado
+        currentAimChargeNormalized = 0f;
     }
 
     private void ForceDrop()
@@ -212,37 +209,32 @@ public class GrabObjects : MonoBehaviour
         if (heldObject != null)
         {
             Debug.Log($"GrabObjects: Soltando (drop) {heldObject.name}");
-            trajectoryLine.enabled = false;
+            trajectoryLine.enabled = false; // Ocultar trayectoria al dropear
             isActivelyAiming = false;
 
             heldObject.transform.SetParent(null);
             if (rb_heldObject != null)
             {
                 rb_heldObject.isKinematic = false;
-                // Opcional: aplicar una pequeña fuerza hacia abajo o ninguna
-                // rb_heldObject.AddForce(Vector3.down * 2f, ForceMode.Impulse);
             }
-            PlayerControllerAlt.OnThrow?.Invoke(); // Notificar que se soltó un objeto
+            PlayerControllerAlt.OnThrow?.Invoke(); // Sigue siendo un "throw" en términos de evento
         }
         heldObject = null;
         rb_heldObject = null;
-        isHoldingObject = false;
+        isHoldingObject = false; // <--- Importante actualizar estado
         currentAimChargeNormalized = 0f;
     }
-
     private Vector3 CalculateLaunchVelocity(float angle, float speed, Transform launchPoint)
     {
-        // Rotar el vector 'forward' del punto de lanzamiento hacia arriba por 'angle' grados
-        // alrededor del eje 'right' del punto de lanzamiento.
         Vector3 direction = Quaternion.AngleAxis(-angle, launchPoint.right) * launchPoint.forward;
         return direction.normalized * speed;
     }
 
     private void DrawTrajectory()
     {
-        if (!isHoldingObject || !trajectoryLine.enabled)
+        if (!isHoldingObject || !trajectoryLine.enabled) // Solo dibujar si se está sosteniendo Y la línea está habilitada (por StartAiming)
         {
-            if (trajectoryLine.enabled) trajectoryLine.enabled = false; // Asegurarse que esté apagado si no debe dibujarse
+            if (trajectoryLine.enabled) trajectoryLine.enabled = false;
             return;
         }
 
@@ -252,13 +244,13 @@ public class GrabObjects : MonoBehaviour
         trajectoryLine.positionCount = trajectorySegments;
         Vector3 currentSimPos = point_ref.transform.position;
         Vector3 currentSimVel = launchVel;
-        float timeStep = 0.1f; // Ajusta este valor para la "densidad" de la línea
+        float timeStep = 0.1f;
 
         for (int i = 0; i < trajectorySegments; i++)
         {
             trajectoryLine.SetPosition(i, currentSimPos);
-            currentSimVel += Physics.gravity * timeStep; // Aplicar gravedad
-            currentSimPos += currentSimVel * timeStep;   // Mover a la siguiente posición
+            currentSimVel += Physics.gravity * timeStep;
+            currentSimPos += currentSimVel * timeStep;
         }
     }
 }
