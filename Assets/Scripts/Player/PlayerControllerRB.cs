@@ -61,10 +61,12 @@ public class PlayerControllerAlt : MonoBehaviour
 
     public static event Action OnLose;
 
-    float timeRunning = 0f;
+    float timeRunning ;
 
 
     public static event Action<int> OnGrabSound;
+
+    public static event Action<float> OnSendAdditionalForce;
 
     void Awake()
     {
@@ -138,10 +140,21 @@ public class PlayerControllerAlt : MonoBehaviour
     }
     public void OnGrabAction(InputAction.CallbackContext context)
     {
-       
+        if (context.started)
+        {
+            // Guardamos el momento en que se empezó a presionar
+            keyPressStartTime = Time.time;
+        }
+        else if (context.canceled)
+        {
+            // Al soltar, calculamos duración
+            timeRunning = Time.time - keyPressStartTime;
+            Debug.Log("Tecla presionada por: " + timeRunning + " segundos");
+        }
+
         if (context.performed)
         {
-            timeRunning += Time.deltaTime;
+            
 
             //double duration = context.time - context.startTime;
            
@@ -149,31 +162,23 @@ public class PlayerControllerAlt : MonoBehaviour
             grabbed = !grabbed;
             if (grabbed == true)
             {
+               
                 OnGrab?.Invoke();
-                 
+               
 
             }
             else
             {
+                OnSendAdditionalForce.Invoke(timeRunning);
                 OnThrow?.Invoke();
 
             }
            // Debug.Log("funcionaxd");
         }
-        if (context.started)
-        {
-            // Guardamos el momento en que se empezó a presionar
-            keyPressStartTime = context.time;
-        }
-        else if (context.canceled)
-        {
-            // Al soltar, calculamos duración
-            double duration = context.time - keyPressStartTime;
-            Debug.Log("Tecla presionada por: " + duration + " segundos");
-        }
+       
       //  Debug.Log("pressed for " + duration + "seconds");
     }
-    private double keyPressStartTime;
+    private float keyPressStartTime;
     void Update()
     {
         if (dashCooldownTimer > 0f)

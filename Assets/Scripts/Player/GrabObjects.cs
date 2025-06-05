@@ -5,13 +5,15 @@ public class GrabObjects : MonoBehaviour
 {
     [SerializeField] GameObject point_ref;
     private GameObject object_ref;
-    [SerializeField] float throwForce = 10f;
+    float throwForce = 10f;
     string[] tags = { "star", "ship", "moon", "alien", "saturn" };
 
     private Rigidbody rb_object_ref;
    
     private bool isCurrentlyHolding = false;
 
+
+    float addForce;
     void Start()
     {
     }
@@ -23,17 +25,23 @@ public class GrabObjects : MonoBehaviour
     private void OnEnable()
     {
         PlayerControllerAlt.OnThrow = ThrowObject;
+        PlayerControllerAlt.OnSendAdditionalForce += GetTimeRunning;
     }
 
     private void OnDisable()
     {
         PlayerControllerAlt.OnThrow -= ThrowObject;
+        PlayerControllerAlt.OnSendAdditionalForce -= GetTimeRunning;
         if (object_ref != null && !isCurrentlyHolding)
         {
             PlayerControllerAlt.OnGrab -= GrabObject;
         }
     }
-
+    void GetTimeRunning(float add)
+    {
+        addForce = add;
+        Debug.Log("float:" + addForce+  "\n throwForce" + throwForce);
+    }
     /*private void OnCollisionEnter(Collision collision)
     {
         if (isCurrentlyHolding)
@@ -190,8 +198,9 @@ public class GrabObjects : MonoBehaviour
         DropObject();
 
         Vector3 throwDirection = point_ref.transform.forward;
-        rb_object_ref.AddForce(throwDirection * throwForce, ForceMode.Impulse);
-
+        rb_object_ref.AddForce(throwDirection * (throwForce + addForce), ForceMode.Impulse);
+       Debug.Log("fuerza total" + (throwForce+ addForce) );
+       // Debug.Log($"ThrowForce: {throwForce} | AddedForce{addForce} : Total {throwForce + addForce}");
         isCurrentlyHolding = false;
 
         PlayerControllerAlt.OnGrab -= GrabObject;

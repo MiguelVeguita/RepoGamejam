@@ -31,77 +31,39 @@ public class Boxes : MonoBehaviour
     }
     private void OnTriggerEnter(Collider other)
     {
-        if (tipo == TipoCaja.TipoA)
+        if (tipo == TipoCaja.TipoA || tipo == TipoCaja.TipoB)
         {
             if (other.tag == "star")
             {
-                Debug.Log("estrellita donde estas");
-                OnACollisionWeight?.Invoke(3);
-                weight = 3;
+                SetWeight(3, "estrellita donde estas");
+            }
+            else if (other.tag == "ship")
+            {
+                SetWeight(1, "nave");
+            }
+            else if (other.tag == "moon")
+            {
+                SetWeight(10, "luna");
+            }
+            else if (other.tag == "alien")
+            {
+                SetWeight(4, "alien");
+            }
+            else if (other.tag == "saturn")
+            {
+                SetWeight(8, "saturno");
+            }
+            else
+            {
+                Debug.Log("xd");
+            }
+        }
+    }
 
-            }
-            else if (other.tag == "ship")
-            {
-                Debug.Log("navecita");
-                OnACollisionWeight?.Invoke(1);
-                weight = 1;
-            }
-            else if (other.tag == "moon")
-            {
-                Debug.Log("luna");
-                OnACollisionWeight?.Invoke(10);
-                weight = 10;
-            }
-            else if (other.tag == "alien")
-            {
-                Debug.Log("alien"); OnACollisionWeight?.Invoke(4);
-                weight = 4;
-            }
-            else if (other.tag == "saturn")
-            {
-                Debug.Log("en saturno"); OnACollisionWeight?.Invoke(8);
-                weight = 8;
-            }
-            else
-            {
-                Debug.Log("no hijito");
-            }
-        }
-        if (tipo == TipoCaja.TipoB)
-        {
-            if (other.tag == "star")
-            {
-                Debug.Log("estrellita donde estas");
-                OnBCollisionWeight?.Invoke(3);
-                weight = 3;
-            }
-            else if (other.tag == "ship")
-            {
-                Debug.Log("navecita");
-                OnBCollisionWeight?.Invoke(1);
-                weight = 1;
-            }
-            else if (other.tag == "moon")
-            {
-                Debug.Log("luna");
-                OnBCollisionWeight?.Invoke(10);
-                weight = 10;
-            }
-            else if (other.tag == "alien")
-            {
-                Debug.Log("alien"); OnBCollisionWeight?.Invoke(4);
-                weight = 4;
-            }
-            else if (other.tag == "saturn")
-            {
-                Debug.Log("en saturno"); OnBCollisionWeight?.Invoke(8);
-                weight = 8;
-            }
-            else
-            {
-                Debug.Log("no hijito");
-            }
-        }
-        
+    private void SetWeight(int weight, string messageDebug = "")
+    {
+        Debug.Log(messageDebug);
+        this.weight = weight;
+        OnACollisionWeight?.Invoke(this.weight);
     }
 }
