@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class ControladorBalanza : MonoBehaviour
@@ -17,12 +18,13 @@ public class ControladorBalanza : MonoBehaviour
     [SerializeField] private float velocidadRotacionSuave = 5f;
     [Tooltip("El eje local alrededor del cual rotará la balanza (ej. (0,0,1) para rotar sobre Z).")]
     [SerializeField] private Vector3 ejeDeRotacionLocal = Vector3.forward; // Comúnmente Vector3.forward (eje Z) o Vector3.right (eje X)
-
+    [SerializeField] private float pesoTotalParaGanar = 50f;
     private Quaternion rotacionInicial; // Para referencia, si la balanza no empieza perfectamente horizontal
     private float anguloInclinacionActual = 0f; // Para seguimiento interno
 
     public static event System.Action OnEquilibrioPerdido; // Evento para notificar la pérdida
-
+    private bool victoriaAlcanzada = false;
+    public static event Action OnVictoriaAlcanzada;
     void Start()
     {
         // Guardar la rotación inicial de la balanza
@@ -42,6 +44,8 @@ public class ControladorBalanza : MonoBehaviour
     }
     void Update()
     {
+        if (victoriaAlcanzada) return;
+
         // 1. Calcular la diferencia de peso
         // Una diferencia positiva inclinará en una dirección, negativa en la otra.
         float diferenciaDePeso = pesoCajaA - pesoCajaB;
@@ -86,14 +90,34 @@ public class ControladorBalanza : MonoBehaviour
     {
         pesoCajaA += cantidad;
         Debug.Log($"Añadido {cantidad} a Caja A. Nuevo peso: {pesoCajaA}");
+        ComprobarCondicionDeVictoria();
     }
 
     public void AnadirPesoACajaB(int cantidad)
     {
         pesoCajaB += cantidad;
         Debug.Log($"Añadido {cantidad} a Caja B. Nuevo peso: {pesoCajaB}");
+        ComprobarCondicionDeVictoria();
     }
+    private void ComprobarCondicionDeVictoria()
+    {
+        // Si ya se ha ganado, no hacer nada.
+        if (victoriaAlcanzada) return;
 
+        // Sumar los pesos de ambas cajas
+        float pesoTotal = pesoCajaA + pesoCajaB;
+
+        // Comprobar si la suma es igual o mayor a la meta
+        if (pesoTotal >= pesoTotalParaGanar)
+        {
+            victoriaAlcanzada = true; // Marcar que ya se ganó
+            Debug.Log("¡VICTORIA! Se ha alcanzado el peso total de " + pesoTotalParaGanar);
+            OnVictoriaAlcanzada?.Invoke(); // Disparar el evento de victoria
+
+            // Opcional: podrías desactivar la balanza para que se quede quieta
+            // enabled = false; 
+        }
+    }
     // (Opcional) Método para resetear la balanza
     public void ResetearBalanza()
     {
@@ -101,6 +125,7 @@ public class ControladorBalanza : MonoBehaviour
         pesoCajaB = 0f;
         transform.localRotation = rotacionInicial;
         anguloInclinacionActual = 0f;
+        victoriaAlcanzada = false;
         enabled = true; // Reactivar el script si fue desactivado
         Debug.Log("Balanza reseteada.");
     }

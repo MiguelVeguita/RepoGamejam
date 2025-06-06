@@ -2,7 +2,7 @@ using UnityEngine;
 using TMPro;
 public class UIManager : MonoBehaviour
 {
-    public GameObject gameOverScreen; // Asigna esto en el Inspector
+    public GameObject gameOverScreen,victoryscreem; // Asigna esto en el Inspector
 
     //[SerializeField] TMP_Text text;
     [SerializeField] TMP_Text AweightText;
@@ -25,12 +25,17 @@ public class UIManager : MonoBehaviour
         Boxes.OnACollisionWeight += WeightAType;
         Boxes.OnBCollisionWeight += WeightBType;
         PlayerControllerAlt.OnLose += ShowGameOverScreen;
+        Pelotita.OnLosem += ShowGameOverScreen;
+        ControladorBalanza.OnVictoriaAlcanzada += victory;
     }
     private void OnDisable()
     {
         Boxes.OnACollisionWeight -= WeightAType;
         Boxes.OnBCollisionWeight -= WeightBType;
         PlayerControllerAlt.OnLose -= ShowGameOverScreen;
+        Pelotita.OnLosem -= ShowGameOverScreen;
+        ControladorBalanza.OnVictoriaAlcanzada -= victory;
+
     }
     private void Update()
     {
@@ -44,6 +49,14 @@ public class UIManager : MonoBehaviour
     public void WeightBType(int weight)
     {
         Bweight += weight;
+    }
+    public void victory()
+    {
+        if (victoryscreem!= null)
+        {
+            victoryscreem.SetActive(true);
+            Debug.Log("ganaste papeto!");
+        }
     }
 
 }

@@ -1,4 +1,5 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Boxes : MonoBehaviour
@@ -36,8 +37,8 @@ public class Boxes : MonoBehaviour
             if (other.tag == "star")
             {
                 Debug.Log("estrellita donde estas");
-                OnACollisionWeight?.Invoke(3);
-                weight = 3;
+                OnACollisionWeight?.Invoke(2);
+                weight = 2;
 
             }
             else if (other.tag == "ship")
@@ -49,8 +50,8 @@ public class Boxes : MonoBehaviour
             else if (other.tag == "moon")
             {
                 Debug.Log("luna");
-                OnACollisionWeight?.Invoke(10);
-                weight = 10;
+                OnACollisionWeight?.Invoke(3);
+                weight = 3;
             }
             else if (other.tag == "alien")
             {
@@ -59,21 +60,22 @@ public class Boxes : MonoBehaviour
             }
             else if (other.tag == "saturn")
             {
-                Debug.Log("en saturno"); OnACollisionWeight?.Invoke(8);
-                weight = 8;
+                Debug.Log("en saturno"); OnACollisionWeight?.Invoke(5);
+                weight = 5;
             }
             else
             {
                 Debug.Log("no hijito");
             }
+            Destroy(other.gameObject);
         }
         if (tipo == TipoCaja.TipoB)
         {
             if (other.tag == "star")
             {
                 Debug.Log("estrellita donde estas");
-                OnBCollisionWeight?.Invoke(3);
-                weight = 3;
+                OnBCollisionWeight?.Invoke(2);
+                weight = 2;
             }
             else if (other.tag == "ship")
             {
@@ -84,8 +86,8 @@ public class Boxes : MonoBehaviour
             else if (other.tag == "moon")
             {
                 Debug.Log("luna");
-                OnBCollisionWeight?.Invoke(10);
-                weight = 10;
+                OnBCollisionWeight?.Invoke(3);
+                weight = 3;
             }
             else if (other.tag == "alien")
             {
@@ -94,13 +96,14 @@ public class Boxes : MonoBehaviour
             }
             else if (other.tag == "saturn")
             {
-                Debug.Log("en saturno"); OnBCollisionWeight?.Invoke(8);
-                weight = 8;
+                Debug.Log("en saturno"); OnBCollisionWeight?.Invoke(5);
+                weight = 5;
             }
             else
             {
                 Debug.Log("no hijito");
             }
+            Destroy(other.gameObject);
         }
         
     }

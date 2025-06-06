@@ -199,7 +199,11 @@ public class GrabObjects : MonoBehaviour
 
         PlayerControllerAlt.OnThrow?.Invoke();
         PlayerControllerAlt.TriggerThrowSoundEvent(4); // <<-- MODIFICADO AQUÍ
-
+        TrailRenderer trail = heldObject.GetComponent<TrailRenderer>();
+        if (trail != null)
+        {
+            trail.enabled = true;
+        }
         heldObject = null;
         rb_heldObject = null;
         isHoldingObject = false;
