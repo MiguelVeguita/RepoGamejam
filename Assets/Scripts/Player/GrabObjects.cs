@@ -2,6 +2,7 @@
 
 using UnityEngine;
 using System;
+using System.Collections;
 
 public class GrabObjects : MonoBehaviour
 {
@@ -18,6 +19,8 @@ public class GrabObjects : MonoBehaviour
     [SerializeField] int trajectorySegments = 30;
     [SerializeField] Material trajectoryMaterial;
     [SerializeField] float trajectoryLineWidth = 0.1f;
+    [SerializeField] float trajectoryRetractionTime = 0.2f;
+    private Coroutine retractionCoroutine;
 
     private GameObject currentTargetObject;
     private Rigidbody rb_currentTargetObject;
@@ -93,7 +96,23 @@ public class GrabObjects : MonoBehaviour
     {
         return isActivelyAiming; // Esto es para la carga y visualización de la trayectoria
     }
+    private IEnumerator RetractTrajectory()
+    {
+        float timer = trajectoryRetractionTime;
+        int initialSegments = trajectoryLine.positionCount;
 
+        // Mientras dure el tiempo del efecto
+        while (timer > 0f)
+        {
+            // Reduce el número de puntos de la línea de forma proporcional al tiempo
+            trajectoryLine.positionCount = Mathf.RoundToInt(Mathf.Lerp(0, initialSegments, timer / trajectoryRetractionTime));
+            timer -= Time.deltaTime;
+            yield return null; // Espera al siguiente frame
+        }
+
+        // Limpieza final
+        trajectoryLine.enabled = false;
+    }
 
     // ... ProcessGrabDropKey, StartAiming, StopAiming, UpdateAimCharge, ProcessThrowKey ...
     // ... TryGrab, PerformThrow, ForceDrop, CalculateLaunchVelocity, DrawTrajectory ...
@@ -109,22 +128,37 @@ public class GrabObjects : MonoBehaviour
             TryGrab();
         }
     }
+    // GrabObjects.cs
+
     public void StartAiming()
     {
         if (isHoldingObject)
         {
+            // Si hay una coroutine de retroceso en marcha, la detenemos
+            if (retractionCoroutine != null)
+            {
+                StopCoroutine(retractionCoroutine);
+                retractionCoroutine = null;
+            }
+
             isActivelyAiming = true;
             currentAimChargeNormalized = 0f;
             trajectoryLine.enabled = true;
+            // Aseguramos que la línea tenga todos sus segmentos al empezar a apuntar
+            trajectoryLine.positionCount = trajectorySegments;
             Debug.Log("GrabObjects: Empezando a apuntar.");
         }
     }
+
     public void StopAiming()
     {
         if (isHoldingObject && isActivelyAiming)
         {
             isActivelyAiming = false;
-            // No ocultar trayectoria aquí, se oculta al lanzar o dropear.
+
+            // En lugar de ocultar la línea directamente, iniciamos la coroutine de retroceso
+            retractionCoroutine = StartCoroutine(RetractTrajectory()); // <<-- LÍNEA MODIFICADA
+
             Debug.Log($"GrabObjects: Dejó de apuntar activamente. Carga final: {currentAimChargeNormalized}");
         }
     }
@@ -235,7 +269,19 @@ public class GrabObjects : MonoBehaviour
     }
     private Vector3 CalculateLaunchVelocity(float angle, float speed, Transform launchPoint)
     {
-        Vector3 direction = Quaternion.AngleAxis(-angle, launchPoint.right) * launchPoint.forward;
+        // ANTERIOR:
+        // Vector3 direction = Quaternion.AngleAxis(-angle, launchPoint.right) * launchPoint.forward;
+
+        // CORRECCIÓN:
+        // Usamos el transform del jugador (o el del propio GrabObjects si está en el jugador)
+        // para obtener la dirección "adelante" correcta.
+        Vector3 forwardDirection = transform.forward;
+        Vector3 upwardDirection = transform.up;
+
+        // Rotamos el vector "adelante" hacia arriba según el ángulo de lanzamiento.
+        // El eje de rotación ahora es el eje "derecha" del jugador.
+        Vector3 direction = Quaternion.AngleAxis(-angle, transform.right) * forwardDirection;
+
         return direction.normalized * speed;
     }
 

@@ -4,8 +4,8 @@ using System;
 public class Pelotita : MonoBehaviour
 {
     public static event Action OnLosem;
+    [SerializeField] private GameObject HUD;
 
-   
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("lose")) // Usar CompareTag es más eficiente
@@ -14,6 +14,7 @@ public class Pelotita : MonoBehaviour
             Cursor.lockState = CursorLockMode.Confined;
             Cursor.visible = true;
             OnLosem?.Invoke();
+            HUD.SetActive(false);
         }
     }
 }

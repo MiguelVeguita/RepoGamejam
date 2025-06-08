@@ -151,6 +151,7 @@ public class PlayerControllerAlt : MonoBehaviour
             grabber.ProcessThrowKey(); // El sonido de lanzamiento ahora se invoca desde GrabObjects.PerformThrow()
         }
     }
+    [SerializeField] private GameObject HUD;
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("lose")) // Usar CompareTag es más eficiente
@@ -159,6 +160,7 @@ public class PlayerControllerAlt : MonoBehaviour
             Cursor.lockState = CursorLockMode.Confined;
             Cursor.visible = true;
             OnLose?.Invoke();
+            HUD.SetActive(false);
         }
     }
 

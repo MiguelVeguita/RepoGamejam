@@ -4,119 +4,115 @@ using UnityEngine;
 public class ControladorBalanza : MonoBehaviour
 {
     [Header("Pesos de las Cajas")]
-    [Tooltip("Peso acumulado en la Caja A (izquierda, por ejemplo). Modifica esto en el Inspector para probar.")]
     public float pesoCajaA = 0f;
-    [Tooltip("Peso acumulado en la Caja B (derecha, por ejemplo). Modifica esto en el Inspector para probar.")]
     public float pesoCajaB = 0f;
 
     [Header("Configuración de la Balanza")]
-    [Tooltip("Qué tan sensible es la balanza a la diferencia de peso. Un valor mayor significa más inclinación por unidad de peso.")]
-    [SerializeField] private float sensibilidadInclinacion = 5f; // Grados por unidad de peso
-    [Tooltip("El ángulo máximo (en grados) que la balanza puede inclinarse antes de que se considere una pérdida.")]
+    [SerializeField] private float sensibilidadInclinacion = 5f;
     [SerializeField] private float anguloMaximoPeligro = 30f;
-    [Tooltip("Velocidad con la que la balanza rota hacia su ángulo objetivo. Más alto = más rápido.")]
     [SerializeField] private float velocidadRotacionSuave = 5f;
-    [Tooltip("El eje local alrededor del cual rotará la balanza (ej. (0,0,1) para rotar sobre Z).")]
-    [SerializeField] private Vector3 ejeDeRotacionLocal = Vector3.forward; // Comúnmente Vector3.forward (eje Z) o Vector3.right (eje X)
-    [SerializeField] private float pesoTotalParaGanar = 50f;
-    private Quaternion rotacionInicial; // Para referencia, si la balanza no empieza perfectamente horizontal
-    private float anguloInclinacionActual = 0f; // Para seguimiento interno
+    [SerializeField] private Vector3 ejeDeRotacionLocal = Vector3.forward;
+    [SerializeField] private GameObject HUD;
 
-    public static event System.Action OnEquilibrioPerdido; // Evento para notificar la pérdida
+    [Header("Condición de Victoria por Tiempo")] // <<-- SECCIÓN MODIFICADA
+    [Tooltip("El tiempo en segundos reales que el jugador debe sobrevivir para ganar.")]
+    [SerializeField] private float duracionParaGanar = 30f; // <<-- NUEVA VARIABLE
+
+    // <<-- Variables públicas para que el UI pueda leer el estado del temporizador -->>
+    public float TiempoTranscurrido { get; private set; } = 0f;
+    public float DuracionTotal => duracionParaGanar; // Forma corta de exponer una variable privada
+
+    private Quaternion rotacionInicial;
+    private float anguloInclinacionActual = 0f;
     private bool victoriaAlcanzada = false;
-    public static event Action OnVictoriaAlcanzada;
+    private bool juegoTerminado = false; // <<-- NUEVO: Para detener el timer si se pierde
+
+    public static event Action OnEquilibrioPerdido;
+    public static event System.Action<float> OnVictoriaAlcanzada;
+
     void Start()
     {
-        // Guardar la rotación inicial de la balanza
         rotacionInicial = transform.localRotation;
-        // Asegurarse de que el eje de rotación esté normalizado por si acaso
         ejeDeRotacionLocal.Normalize();
+        HUD.SetActive(true);
     }
+
     private void OnEnable()
     {
         Boxes.OnACollisionWeight += AnadirPesoACajaA;
         Boxes.OnBCollisionWeight += AnadirPesoACajaB;
+        OnEquilibrioPerdido += DetenerJuego; // <<-- NUEVO: Suscribirse a su propio evento
     }
+
     private void OnDisable()
     {
         Boxes.OnACollisionWeight -= AnadirPesoACajaA;
         Boxes.OnBCollisionWeight -= AnadirPesoACajaB;
+        OnEquilibrioPerdido -= DetenerJuego; // <<-- NUEVO
     }
+
     void Update()
     {
-        if (victoriaAlcanzada) return;
+        // Si el juego ha terminado (por victoria o derrota), no hacemos nada más.
+        if (juegoTerminado)
+        {
+            HUD.SetActive(false);
+            return;
+        }
 
-        // 1. Calcular la diferencia de peso
-        // Una diferencia positiva inclinará en una dirección, negativa en la otra.
+        // --- LÓGICA DE LA BALANZA (SIN CAMBIOS) ---
         float diferenciaDePeso = pesoCajaA - pesoCajaB;
-
-        // 2. Calcular el ángulo de inclinación objetivo basado en la diferencia y la sensibilidad
-        // Si pesoCajaA > pesoCajaB, diferenciaDePeso es positivo.
-        // Si el ejeDeRotacionLocal es (0,0,1) (forward), un ángulo positivo rotará hacia la "izquierda" (antihorario alrededor de Z).
-        // Puedes invertir el signo de diferenciaDePeso si la rotación es al revés de lo que esperas.
         float anguloInclinacionObjetivo = diferenciaDePeso * sensibilidadInclinacion;
-
-        // 3. Limitar el ángulo objetivo (opcional, pero puede ser bueno para evitar giros completos si la sensibilidad es muy alta)
-        // anguloInclinacionObjetivo = Mathf.Clamp(anguloInclinacionObjetivo, -90f, 90f); // Ejemplo de límite a +/- 90 grados
-
-        // 4. Crear la rotación objetivo
-        // Se aplica la rotación sobre la rotación inicial, usando el eje local.
         Quaternion rotacionObjetivo = rotacionInicial * Quaternion.AngleAxis(anguloInclinacionObjetivo, ejeDeRotacionLocal);
-
-        // 5. Aplicar la rotación suavemente al transform de la balanza
         transform.localRotation = Quaternion.Slerp(transform.localRotation, rotacionObjetivo, Time.deltaTime * velocidadRotacionSuave);
+        anguloInclinacionActual = anguloInclinacionObjetivo;
 
-        // Actualizar el ángulo de inclinación actual para la lógica de pérdida
-        // Esto se puede obtener de varias maneras. Una forma es medir el ángulo entre el "up" actual y el "up" inicial.
-        // O, más simple para este caso, usar el ángulo objetivo ya que la rotación lo seguirá.
-        anguloInclinacionActual = anguloInclinacionObjetivo; // O podrías calcularlo desde transform.localEulerAngles
-
-        // 6. Comprobar si se ha superado el ángulo de peligro
+        // --- LÓGICA DE PÉRDIDA (SIN CAMBIOS) ---
         if (Mathf.Abs(anguloInclinacionActual) > anguloMaximoPeligro)
         {
-            // ¡Peligro! La balanza se ha inclinado demasiado.
-            Debug.LogWarning("¡EQUILIBRIO PERDIDO! La balanza se inclinó demasiado: " + anguloInclinacionActual + " grados.");
-            OnEquilibrioPerdido?.Invoke(); // Disparar el evento de pérdida
+            Debug.LogWarning("¡EQUILIBRIO PERDIDO! La balanza se inclinó demasiado.");
+            OnEquilibrioPerdido?.Invoke();
+            HUD.SetActive(false);
+        }
 
-            // Aquí podrías añadir lógica adicional, como desactivar este script para que no siga rotando,
-            // o iniciar una animación de caída del jugador, etc.
-            // Por ahora, solo mostramos un mensaje y disparamos el evento.
-           // enabled = false; // Desactivar este script para detener la lógica de la balanza
+        // --- NUEVA LÓGICA DE VICTORIA POR TIEMPO ---
+        TiempoTranscurrido += Time.deltaTime;
+        if (TiempoTranscurrido >= duracionParaGanar)
+        {
+            victoriaAlcanzada = true;
+            juegoTerminado = true;
+            Debug.Log("¡VICTORIA! Se ha sobrevivido durante " + duracionParaGanar + " segundos.");
+
+            // Calcula el peso total
+            float pesoTotal = pesoCajaA + pesoCajaB;
+
+            // Invoca el evento y "envía" el pesoTotal junto a él
+            OnVictoriaAlcanzada?.Invoke(pesoTotal); // <<-- MODIFICADO
+            HUD.SetActive(false);
+            // Desactivar la lógica de añadir peso para que se quede estable
+            enabled = false;
         }
     }
 
-    // Métodos públicos para que otros scripts puedan añadir peso a las cajas
+    // <<-- NUEVO MÉTODO -->>
+    private void DetenerJuego()
+    {
+        juegoTerminado = true;
+        // Opcional: Desactivar el script para congelar la balanza en su estado de caída
+        // enabled = false;
+    }
+
+    // Ya no comprueban la victoria, solo acumulan peso
     public void AnadirPesoACajaA(int cantidad)
     {
         pesoCajaA += cantidad;
         Debug.Log($"Añadido {cantidad} a Caja A. Nuevo peso: {pesoCajaA}");
-        ComprobarCondicionDeVictoria();
     }
 
     public void AnadirPesoACajaB(int cantidad)
     {
         pesoCajaB += cantidad;
         Debug.Log($"Añadido {cantidad} a Caja B. Nuevo peso: {pesoCajaB}");
-        ComprobarCondicionDeVictoria();
-    }
-    private void ComprobarCondicionDeVictoria()
-    {
-        // Si ya se ha ganado, no hacer nada.
-        if (victoriaAlcanzada) return;
-
-        // Sumar los pesos de ambas cajas
-        float pesoTotal = pesoCajaA + pesoCajaB;
-
-        // Comprobar si la suma es igual o mayor a la meta
-        if (pesoTotal >= pesoTotalParaGanar)
-        {
-            victoriaAlcanzada = true; // Marcar que ya se ganó
-            Debug.Log("¡VICTORIA! Se ha alcanzado el peso total de " + pesoTotalParaGanar);
-            OnVictoriaAlcanzada?.Invoke(); // Disparar el evento de victoria
-
-            // Opcional: podrías desactivar la balanza para que se quede quieta
-            // enabled = false; 
-        }
     }
     // (Opcional) Método para resetear la balanza
     public void ResetearBalanza()

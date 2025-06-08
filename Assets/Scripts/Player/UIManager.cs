@@ -37,10 +37,18 @@ public class UIManager : MonoBehaviour
         ControladorBalanza.OnVictoriaAlcanzada -= victory;
 
     }
+    // <<-- ESTE ES EL MÉTODO QUE FALTABA Y CAUSABA EL ERROR -->>
+    public void victory(float finalScore)
+    {
+        if (victoryscreem != null)
+        {
+            victoryscreem.SetActive(true); // Activa la pantalla de victoria
+        }
+    }
     private void Update()
     {
-        AweightText.text = ("weight " + Aweight);
-        BweightText.text = ("weight " + Bweight);
+        AweightText.text = ("PESO " + Aweight);
+        BweightText.text = ("PESO " + Bweight);
     }
     public void WeightAType(int weight)
     {
